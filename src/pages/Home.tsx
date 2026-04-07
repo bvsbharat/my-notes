@@ -10,7 +10,7 @@ import { useTemplates } from '../hooks/useTemplates';
 import { useSettings } from '../hooks/useSettings';
 import { useNotes } from '../hooks/useNotes';
 import { displayTitle, safeStructured, safeSegments, conversationDuration, formatTimestamp } from '../lib/types';
-import { toggleStar, softDelete, toggleTaskCompleted, deleteTask, exportAsText, downloadText, reprocessConversation } from '../lib/actions';
+import { toggleStar, softDelete, toggleTaskCompleted, exportAsText, downloadText, reprocessConversation } from '../lib/actions';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
@@ -26,7 +26,7 @@ export function Home() {
   const { conversations, loading } = useConversations(user?.uid);
   const { templates } = useTemplates(user?.uid);
   const { preferences } = useSettings(user?.uid);
-  const { notes: savedNotes, saveNote } = useNotes(user?.uid);
+  const { saveNote } = useNotes(user?.uid);
 
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -34,7 +34,7 @@ export function Home() {
   const [mode, setMode] = useState<'notes' | 'todo'>('notes');
   const [tab, setTab] = useState<'overview' | 'smartnotes'>('overview');
   const [showTranscript, setShowTranscript] = useState(false);
-  const [reprocessing, setReprocessing] = useState(false);
+  const [, setReprocessing] = useState(false);
   const [userNotes, setUserNotes] = useState('');
   const [aiNotes, setAiNotes] = useState('');
   const [transforming, setTransforming] = useState(false);
@@ -141,36 +141,33 @@ export function Home() {
                 {selected ? (
                   <motion.div key={selected.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                     {/* Title */}
-                    <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-snug mb-1">{displayTitle(selected)}</h1>
-                    <div className="flex gap-2 text-xs text-gray-400 mb-4">
-                      <span>{new Date(selected.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                      {conversationDuration(selected) && <span>{conversationDuration(selected)}</span>}
-                      <span>{selectedSegments.length} seg</span>
-                      {selectedStructured?.category && selectedStructured.category !== 'general' && (
-                        <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{selectedStructured.category}</span>
-                      )}
-                    </div>
+                    <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-snug mb-3">{displayTitle(selected)}</h1>
 
-                    {/* Action icons + tabs row */}
-                    <div className="flex items-center gap-1 mb-5 pb-3 border-b border-gray-100">
-                      {/* Action icons on left */}
+                    {/* Date + time + category + action icons */}
+                    <div className="flex items-center gap-2 mb-5 flex-wrap">
+                      <span className="text-xs text-gray-400">{new Date(selected.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      <span className="text-xs text-gray-400">{new Date(selected.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                      {selectedStructured?.category && selectedStructured.category !== 'general' && (
+                        <span className="bg-gray-100 px-1.5 py-0.5 rounded text-[11px] text-gray-500">{selectedStructured.category}</span>
+                      )}
+                      <span className="flex-1" />
                       <Ic icon={selected.starred ? <VscStarFull size={14} /> : <VscStarEmpty size={14} />}
                         onClick={() => user && toggleStar(user.uid, selected.id, selected.starred)}
                         className={selected.starred ? '!text-yellow-500' : ''} title="Star" />
                       <Ic icon={<VscRefresh size={14} />} onClick={handleReprocess} title="Re-generate" />
                       <Ic icon={<VscFileCode size={14} />} onClick={() => setShowTranscript(!showTranscript)}
-                        className={showTranscript ? '!text-blue-600' : ''} title="Transcript" />
-                      <Ic icon={<VscCopy size={14} />} onClick={() => navigator.clipboard.writeText(selectedSegments.map(s => `${s.speaker}: ${s.text}`).join('\n'))} title="Copy transcript" />
+                        className={showTranscript ? '!text-gray-900' : ''} title="Transcript" />
+                      <Ic icon={<VscCopy size={14} />} onClick={() => navigator.clipboard.writeText(selectedSegments.map(s => `${s.speaker}: ${s.text}`).join('\n'))} title="Copy" />
                       <Ic icon={<VscDesktopDownload size={14} />} onClick={() => downloadText(`${displayTitle(selected).replace(/[^a-zA-Z0-9]/g, '_')}.md`, exportAsText(selected))} title="Download" />
                       <Ic icon={<VscTrash size={14} />} onClick={() => user && confirm('Delete?') && softDelete(user.uid, selected.id)} className="!text-red-400" title="Delete" />
+                    </div>
 
-                      <span className="flex-1" />
-
-                      {/* Tabs on right */}
+                    {/* Tabs */}
+                    <div className="flex items-center gap-0 mb-5">
                       {(['overview', 'smartnotes'] as const).map(t => (
                         <button key={t} onClick={() => { setTab(t); setShowTranscript(false); }}
                           className={`px-3 py-1.5 text-xs font-semibold bg-transparent border-none cursor-pointer transition-colors rounded-md ${
-                            tab === t && !showTranscript ? 'text-blue-600 bg-blue-50' : 'text-gray-400 hover:text-gray-600'
+                            tab === t && !showTranscript ? 'text-gray-900 bg-gray-100' : 'text-gray-400 hover:text-gray-600'
                           }`}>
                           {t === 'overview' ? 'Overview' : 'Smart Notes'}
                         </button>
@@ -210,31 +207,39 @@ export function Home() {
                                   <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">
                                     Tasks ({selectedStructured.actionItems.filter(a => !a.completed).length}/{selectedStructured.actionItems.length})
                                   </p>
-                                  <div className="space-y-2">
-                                    {selectedStructured.actionItems.map((item, i) => (
-                                      <div key={item.id}
-                                        onClick={() => user && toggleTaskCompleted(user.uid, selected.id, item.id, !item.completed)}
-                                        className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer ${CARD_COLORS[i % CARD_COLORS.length]}`}>
-                                        <span className={`w-5 h-5 rounded-md flex items-center justify-center text-xs shrink-0 mt-0.5 transition-colors ${
-                                          item.completed ? 'bg-green-500 text-white' : 'bg-white/70 border-2 border-gray-300 hover:border-green-400'}`}>
-                                          {item.completed && '\u2713'}
-                                        </span>
-                                        <span className={`text-sm leading-relaxed ${item.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{item.description}</span>
-                                      </div>
-                                    ))}
+                                  <div className="space-y-1.5">
+                                    {selectedStructured.actionItems.map((item, i) => {
+                                      const HL = ['bg-blue-100', 'bg-green-100', 'bg-yellow-100', 'bg-red-100', 'bg-purple-100', 'bg-orange-100'];
+                                      return (
+                                        <div key={item.id}
+                                          onClick={() => user && toggleTaskCompleted(user.uid, selected.id, item.id, !item.completed)}
+                                          className="flex items-start gap-2.5 cursor-pointer py-0.5">
+                                          <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] shrink-0 mt-0.5 transition-colors ${
+                                            item.completed ? 'bg-gray-900 text-white' : 'border-2 border-gray-900 hover:bg-gray-100'}`}>
+                                            {item.completed && '\u2713'}
+                                          </span>
+                                          <span className={`text-[14px] leading-relaxed ${item.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                                            <span className={`${item.completed ? '' : HL[i % HL.length]} px-1 py-0.5 rounded`}>{item.description}</span>
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               )}
                               {selectedStructured.events.length > 0 && (
                                 <div>
                                   <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Events</p>
-                                  <div className="space-y-2">
-                                    {selectedStructured.events.map((ev, i) => (
-                                      <div key={i} className={`p-3 rounded-xl ${CARD_COLORS[(i + 3) % CARD_COLORS.length]}`}>
-                                        <p className="text-sm font-semibold text-gray-900">{ev.title}</p>
-                                        {ev.description && <p className="text-xs text-gray-500 mt-1">{ev.description}</p>}
-                                      </div>
-                                    ))}
+                                  <div className="space-y-1">
+                                    {selectedStructured.events.map((ev, i) => {
+                                      const HL = ['bg-cyan-100', 'bg-amber-100', 'bg-pink-100', 'bg-lime-100', 'bg-indigo-100'];
+                                      return (
+                                        <p key={i} className="text-[14px] text-gray-900 leading-relaxed">
+                                          <span className={`${HL[i % HL.length]} px-1 py-0.5 rounded font-medium`}>{ev.title}</span>
+                                          {ev.description && <span className="text-gray-500 text-xs ml-1.5">{ev.description}</span>}
+                                        </p>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               )}
@@ -265,7 +270,7 @@ export function Home() {
                                     className="w-full min-h-[400px] p-6 border-none rounded-2xl text-sm text-gray-900 leading-[1.8] resize-y outline-none placeholder:text-gray-400/60"
                                     style={{ background: '#fef9ef' }} />
                                   <button onClick={handleTransform} disabled={transforming || !userNotes.trim()}
-                                    className="mt-3 px-5 py-2.5 bg-blue-600 text-white border-none rounded-xl text-sm font-semibold cursor-pointer flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                                    className="mt-3 px-5 py-2.5 bg-gray-900 text-white border-none rounded-xl text-sm font-semibold cursor-pointer flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
                                     <VscSparkle size={14} />{transforming ? 'Transforming...' : 'AI Transform'}
                                   </button>
                                   {safeTemplates.length > 0 && (

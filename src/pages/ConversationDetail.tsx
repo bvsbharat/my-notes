@@ -10,7 +10,6 @@ import { TranscriptViewer } from '../components/TranscriptViewer';
 import { InsightsPanel } from '../components/InsightsPanel';
 import { NoteEditor } from '../components/NoteEditor';
 import { NotePreview } from '../components/NotePreview';
-import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { displayTitle, conversationDuration, safeStructured, safeSegments } from '../lib/types';
 import { toggleStar, softDelete, exportAsText, downloadText, reprocessConversation } from '../lib/actions';
 

@@ -19,7 +19,7 @@ interface Props {
   saveNote: (note: any) => Promise<string | undefined>;
 }
 
-export function NoteDetail({ conv, uid, templates, preferences, savedNotes, saveNote }: Props) {
+export function NoteDetail({ conv, uid, templates, preferences, saveNote }: Props) {
   const structured = safeStructured(conv);
   const segments = safeSegments(conv);
   const duration = conversationDuration(conv);
@@ -128,7 +128,7 @@ function IBtn({ icon, onClick, style }: { icon: React.ReactNode; onClick: () => 
 }
 
 /* --- OVERVIEW: full rich detail + sidebar --- */
-function OverviewTab({ structured, segments, onRegenerate, reprocessing }: {
+function OverviewTab({ structured }: {
   structured: ReturnType<typeof safeStructured>;
   segments: ReturnType<typeof safeSegments>;
   onRegenerate: () => void;
@@ -299,10 +299,6 @@ function SmartNotesTab({ userNotes, setUserNotes, aiNotes, setAiNotes, transform
       )}
     </div>
   );
-}
-
-function SLabel({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 11, fontWeight: 700, color: '#86868b', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>{children}</div>;
 }
 
 function Pill({ label, onClick, accent, disabled }: { label: string; onClick: () => void; accent?: boolean; disabled?: boolean }) {

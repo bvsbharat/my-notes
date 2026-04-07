@@ -25,7 +25,7 @@ interface Props {
   saveNote: (note: any) => Promise<string | undefined>;
 }
 
-export function NoteDetailCard({ conv, uid, templates, preferences, savedNotes, saveNote }: Props) {
+export function NoteDetailCard({ conv, uid, templates, preferences, saveNote }: Props) {
   const structured = safeStructured(conv);
   const segments = safeSegments(conv);
   const duration = conversationDuration(conv);
@@ -33,7 +33,7 @@ export function NoteDetailCard({ conv, uid, templates, preferences, savedNotes, 
   const time = new Date(conv.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
   const [tab, setTab] = useState<Tab>('overview');
-  const [reprocessing, setReprocessing] = useState(false);
+  const [, setReprocessing] = useState(false);
   const [userNotes, setUserNotes] = useState('');
   const [aiNotes, setAiNotes] = useState('');
   const [transforming, setTransforming] = useState(false);

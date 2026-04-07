@@ -23,7 +23,6 @@ export function NoteCard({ conv, expanded, onToggle, uid }: Props) {
   const segments = safeSegments(conv);
   const duration = conversationDuration(conv);
   const date = new Date(conv.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const time = new Date(conv.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
   const [innerTab, setInnerTab] = useState<InnerTab>('overview');
   const [reprocessing, setReprocessing] = useState(false);
@@ -44,11 +43,6 @@ export function NoteCard({ conv, expanded, onToggle, uid }: Props) {
   const handleStar = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (uid) toggleStar(uid, conv.id, conv.starred);
-  };
-
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (uid && confirm('Delete this note?')) softDelete(uid, conv.id);
   };
 
   const handleReprocess = async () => {
@@ -229,7 +223,7 @@ function ActionBtn({ icon, label, onClick, disabled, accent, danger }: {
   );
 }
 
-function OverviewTab({ structured, conv }: { structured: ReturnType<typeof safeStructured>; conv: Conversation }) {
+function OverviewTab({ structured, conv: _conv }: { structured: ReturnType<typeof safeStructured>; conv: Conversation }) {
   if (!structured.overview && structured.actionItems.length === 0) {
     return <div style={{ color: 'var(--fg-muted)', fontSize: 13, fontStyle: 'italic', fontFamily: 'var(--font-mono)' }}>// no insights yet — click re-generate</div>;
   }

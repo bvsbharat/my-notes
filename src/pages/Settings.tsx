@@ -4,7 +4,6 @@ import { useAuth } from '../hooks/useAuth';
 import { useTemplates } from '../hooks/useTemplates';
 import { useSettings } from '../hooks/useSettings';
 import { TemplateManager } from '../components/TemplateManager';
-import type { AIPreferences } from '../lib/types';
 
 export function Settings() {
   const { user } = useAuth();
