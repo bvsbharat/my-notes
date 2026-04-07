@@ -212,9 +212,11 @@ export function Home() {
                                   </p>
                                   <div className="space-y-2">
                                     {selectedStructured.actionItems.map((item, i) => (
-                                      <div key={item.id} className={`flex items-start gap-3 p-3 rounded-xl ${CARD_COLORS[i % CARD_COLORS.length]}`}>
-                                        <span className={`w-5 h-5 rounded-md flex items-center justify-center text-xs shrink-0 mt-0.5 ${
-                                          item.completed ? 'bg-green-500 text-white' : 'bg-white/70 border-2 border-gray-300'}`}>
+                                      <div key={item.id}
+                                        onClick={() => user && toggleTaskCompleted(user.uid, selected.id, item.id, !item.completed)}
+                                        className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer ${CARD_COLORS[i % CARD_COLORS.length]}`}>
+                                        <span className={`w-5 h-5 rounded-md flex items-center justify-center text-xs shrink-0 mt-0.5 transition-colors ${
+                                          item.completed ? 'bg-green-500 text-white' : 'bg-white/70 border-2 border-gray-300 hover:border-green-400'}`}>
                                           {item.completed && '\u2713'}
                                         </span>
                                         <span className={`text-sm leading-relaxed ${item.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{item.description}</span>
@@ -260,7 +262,8 @@ export function Home() {
                                 <div>
                                   <textarea value={userNotes} onChange={e => setUserNotes(e.target.value)}
                                     placeholder={"Write your notes here...\n\n## Headings\n- Bullet points\n[placeholders]"}
-                                    className="w-full min-h-[280px] p-5 border border-gray-200 rounded-2xl text-sm text-gray-900 leading-[1.8] resize-y outline-none placeholder:text-gray-300" />
+                                    className="w-full min-h-[400px] p-6 border-none rounded-2xl text-sm text-gray-900 leading-[1.8] resize-y outline-none placeholder:text-gray-400/60"
+                                    style={{ background: '#fef9ef' }} />
                                   <button onClick={handleTransform} disabled={transforming || !userNotes.trim()}
                                     className="mt-3 px-5 py-2.5 bg-blue-600 text-white border-none rounded-xl text-sm font-semibold cursor-pointer flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
                                     <VscSparkle size={14} />{transforming ? 'Transforming...' : 'AI Transform'}
@@ -291,25 +294,7 @@ export function Home() {
 
             {/* ── Todo mode ── */}
             {mode === 'todo' && (
-              <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-1">To-do</h2>
-                <p className="text-xs text-gray-400 mb-4">{allTasks.filter(t => !t.completed).length} pending</p>
-                <div className="space-y-2">
-                  {allTasks.filter(t => !t.completed).map((task, i) => (
-                    <div key={task.id} onClick={() => { if (user) toggleTaskCompleted(user.uid, task.convId, task.id, true); }}
-                      className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer ${CARD_COLORS[i % CARD_COLORS.length]}`}>
-                      <span className="w-5 h-5 rounded-md bg-white/70 border-2 border-gray-300 shrink-0 mt-0.5" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 leading-relaxed">{task.description}</p>
-                        <p className="text-[10px] text-gray-400 mt-1">{task.convDate ? new Date(task.convDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {allTasks.filter(t => !t.completed).length === 0 && (
-                    <p className="text-gray-300 text-sm text-center py-8">All caught up!</p>
-                  )}
-                </div>
-              </div>
+              <TodoSection allTasks={allTasks} uid={user?.uid} />
             )}
           </div>
         </div>
@@ -327,7 +312,7 @@ export function Home() {
               className="w-full py-2.5 pl-9 pr-3 bg-white border border-gray-100 rounded-xl text-sm text-gray-900 outline-none placeholder:text-gray-300" />
           </div>
 
-          <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <AnimatePresence>
               {paginated.map((conv, i) => {
                 const s = safeStructured(conv);
@@ -342,8 +327,7 @@ export function Home() {
                     initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: i * 0.02 }}
                     onClick={() => { setSelectedId(conv.id); setMode('notes'); setTab('overview'); setShowTranscript(false); }}
-                    className={`${color} p-4 rounded-2xl flex flex-col justify-between cursor-pointer transition-all ${isActive ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
-                    style={{ aspectRatio: '1' }}
+                    className={`${color} p-4 rounded-2xl flex flex-col justify-between cursor-pointer transition-all min-h-[140px] ${isActive ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
                     whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <div>
                       <p className="text-[14px] font-semibold text-gray-900 leading-snug line-clamp-2 mb-1.5">{displayTitle(conv)}</p>
@@ -367,6 +351,55 @@ export function Home() {
           )}
           {!loading && filtered.length === 0 && <p className="text-center py-16 text-gray-300 text-sm">No notes yet</p>}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function TodoSection({ allTasks, uid }: { allTasks: any[]; uid?: string }) {
+  const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all');
+  const pending = allTasks.filter(t => !t.completed);
+  const done = allTasks.filter(t => t.completed);
+  const shown = filter === 'pending' ? pending : filter === 'done' ? done : allTasks;
+
+  return (
+    <div>
+      <h2 className="text-lg font-bold text-gray-900 mb-1">To-do</h2>
+      <p className="text-xs text-gray-400 mb-4">{pending.length} pending &middot; {done.length} done</p>
+
+      <div className="flex gap-2 mb-5">
+        {(['all', 'pending', 'done'] as const).map(f => (
+          <button key={f} onClick={() => setFilter(f)}
+            className={`px-3 py-1.5 text-xs font-semibold border-none rounded-lg cursor-pointer transition-all ${
+              filter === f ? 'bg-gray-900 text-white' : 'bg-transparent text-gray-400 hover:text-gray-600'}`}>
+            {f === 'all' ? `All (${allTasks.length})` : f === 'pending' ? `Pending (${pending.length})` : `Done (${done.length})`}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        {shown.map((task: any, i: number) => (
+          <div key={task.id}
+            onClick={() => uid && toggleTaskCompleted(uid, task.convId, task.id, !task.completed)}
+            className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer ${task.completed ? 'bg-gray-50' : CARD_COLORS[i % CARD_COLORS.length]}`}>
+            <span className={`w-5 h-5 rounded-md flex items-center justify-center text-xs shrink-0 mt-0.5 transition-colors ${
+              task.completed ? 'bg-green-500 text-white' : 'bg-white/70 border-2 border-gray-300 hover:border-green-400'}`}>
+              {task.completed && '\u2713'}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-medium leading-relaxed ${task.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{task.description}</p>
+              <p className="text-[10px] text-gray-400 mt-1">
+                {task.convDate ? new Date(task.convDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                {task.completed && ' · click to undo'}
+              </p>
+            </div>
+          </div>
+        ))}
+        {shown.length === 0 && (
+          <p className="text-gray-300 text-sm text-center py-8">
+            {filter === 'pending' ? 'All caught up!' : filter === 'done' ? 'No completed tasks' : 'No tasks yet'}
+          </p>
+        )}
       </div>
     </div>
   );
