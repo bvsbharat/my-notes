@@ -11,12 +11,12 @@ interface Task {
 }
 
 const TASK_COLORS = [
-  { bg: '#fef3c7', border: '#fbbf24', text: '#92400e' },
-  { bg: '#dcfce7', border: '#4ade80', text: '#166534' },
-  { bg: '#dbeafe', border: '#60a5fa', text: '#1e40af' },
-  { bg: '#fce7f3', border: '#f472b6', text: '#9d174d' },
-  { bg: '#f3e8ff', border: '#c084fc', text: '#6b21a8' },
-  { bg: '#ffedd5', border: '#fb923c', text: '#9a3412' },
+  { border: '#fbbf24', text: '#92400e' },
+  { border: '#4ade80', text: '#166534' },
+  { border: '#60a5fa', text: '#1e40af' },
+  { border: '#f472b6', text: '#9d174d' },
+  { border: '#c084fc', text: '#6b21a8' },
+  { border: '#fb923c', text: '#9a3412' },
 ];
 
 interface Props {
@@ -50,7 +50,7 @@ export function TodoView({ tasks, onSelectConversation }: Props) {
         {(['pending', 'done', 'all'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{
             padding: '7px 16px', fontSize: 13, fontWeight: 500, border: 'none', borderRadius: 8, cursor: 'pointer',
-            background: filter === f ? '#1d1d1f' : '#f0f0f2', color: filter === f ? '#fff' : '#86868b',
+            background: filter === f ? '#1d1d1f' : 'transparent', color: filter === f ? '#fff' : '#86868b',
             transition: 'all 0.15s',
           }}>
             {f === 'pending' ? `Pending (${pending})` : f === 'done' ? `Done (${done})` : `All (${tasks.length})`}
@@ -59,7 +59,7 @@ export function TodoView({ tasks, onSelectConversation }: Props) {
       </div>
 
       {/* Tasks */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <AnimatePresence>
           {filtered.map((task, i) => {
             const c = TASK_COLORS[i % TASK_COLORS.length];
@@ -72,15 +72,15 @@ export function TodoView({ tasks, onSelectConversation }: Props) {
                 transition={{ delay: i * 0.03 }}
                 style={{
                   display: 'flex', alignItems: 'flex-start', gap: 12,
-                  padding: '14px 16px', borderRadius: 12,
-                  background: task.completed ? '#f9f9fb' : c.bg,
+                  padding: '14px 16px',
+                  background: '#fff',
                   borderLeft: `4px solid ${task.completed ? '#d2d2d7' : c.border}`,
                 }}
               >
                 <span style={{
-                  width: 22, height: 22, borderRadius: 7, flexShrink: 0, marginTop: 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700,
-                  background: task.completed ? '#34c759' : '#fff',
+                  width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 2,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700,
+                  background: task.completed ? '#34c759' : 'transparent',
                   border: task.completed ? 'none' : `2px solid ${c.border}`,
                   color: '#fff',
                 }}>
