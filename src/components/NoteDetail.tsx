@@ -142,26 +142,6 @@ function OverviewTab({ structured, segments, onRegenerate, reprocessing }: {
     <div style={{ display: 'flex', minHeight: '100%' }}>
       {/* Main content - full overview */}
       <div style={{ flex: 1, padding: '28px 36px 60px', minWidth: 0 }}>
-        {/* Re-generate button */}
-        <div style={{ marginBottom: 20 }}>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={onRegenerate}
-            disabled={reprocessing}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '7px 16px', fontSize: 12, fontWeight: 600,
-              background: '#fff', border: '1px solid #d2d2d7', borderRadius: 8,
-              color: '#0071e3', cursor: reprocessing ? 'not-allowed' : 'pointer',
-              opacity: reprocessing ? 0.5 : 1,
-            }}
-          >
-            <VscRefresh size={13} />
-            {reprocessing ? 'Re-generating...' : 'Re-generate'}
-          </motion.button>
-        </div>
-
         {structured.overview && (
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontSize: 16, lineHeight: 1.8, color: '#424245' }}>

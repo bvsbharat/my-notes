@@ -88,14 +88,14 @@ export function Home() {
       {mode === 'notes' && (
         <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
           {/* LEFT sidebar - no background color, blends with content */}
-          <div style={{ width: 320, flexShrink: 0, borderRight: '1px solid #e8e8ed', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ width: 320, flexShrink: 0, borderRight: '1px solid #e8e8ed', display: 'flex', flexDirection: 'column', background: '#fff' }}>
             <div style={{ padding: 12, position: 'relative' }}>
               <VscSearch size={14} style={{ position: 'absolute', left: 22, top: '50%', transform: 'translateY(-50%)', color: '#aeaeb2' }} />
               <input
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
                 placeholder="Search notes..."
-                style={{ width: '100%', padding: '10px 12px 10px 34px', background: '#f0f0f2', border: 'none', borderRadius: 10, color: '#1d1d1f', fontSize: 14, outline: 'none' }}
+                style={{ width: '100%', padding: '10px 12px 10px 34px', background: '#fff', border: '1px solid #e8e8ed', borderRadius: 10, color: '#1d1d1f', fontSize: 14, outline: 'none' }}
               />
             </div>
 
