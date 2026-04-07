@@ -1,24 +1,20 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { VscSearch, VscSettingsGear, VscSignOut, VscChecklist, VscNote } from 'react-icons/vsc';
+import { VscSearch, VscSettingsGear, VscSignOut, VscChecklist, VscNote,
+  VscStarFull, VscStarEmpty, VscTrash, VscCopy, VscRefresh, VscSparkle,
+  VscFileCode, VscDesktopDownload } from 'react-icons/vsc';
 import { useAuth } from '../hooks/useAuth';
 import { useConversations } from '../hooks/useConversations';
 import { useTemplates } from '../hooks/useTemplates';
 import { useSettings } from '../hooks/useSettings';
 import { useNotes } from '../hooks/useNotes';
-import { displayTitle, safeStructured, safeSegments, conversationDuration } from '../lib/types';
+import { displayTitle, safeStructured, safeSegments, conversationDuration, formatTimestamp } from '../lib/types';
 import { toggleStar, softDelete, toggleTaskCompleted, deleteTask, exportAsText, downloadText, reprocessConversation } from '../lib/actions';
-import { NoteIcon } from '../lib/noteIcons';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
-import { VscStarFull, VscStarEmpty, VscTrash, VscCopy, VscExport, VscRefresh, VscSparkle } from 'react-icons/vsc';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLink } from '@fortawesome/free-solid-svg-icons';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import type { Conversation } from '../lib/types';
 
 const PAGE_SIZE = 12;
-
 const CARD_COLORS = [
   'bg-blue-100', 'bg-green-100', 'bg-yellow-100', 'bg-red-100',
   'bg-purple-100', 'bg-green-100', 'bg-blue-100', 'bg-yellow-100',
@@ -37,10 +33,14 @@ export function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mode, setMode] = useState<'notes' | 'todo'>('notes');
   const [tab, setTab] = useState<'overview' | 'smartnotes'>('overview');
+  const [showTranscript, setShowTranscript] = useState(false);
   const [reprocessing, setReprocessing] = useState(false);
   const [userNotes, setUserNotes] = useState('');
   const [aiNotes, setAiNotes] = useState('');
   const [transforming, setTransforming] = useState(false);
+  const [leftWidth, setLeftWidth] = useState(70);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
 
   const filtered = useMemo(() => {
     let list = conversations.filter(c => !c.deleted);
@@ -58,6 +58,9 @@ export function Home() {
   const paginated = useMemo(() => filtered.slice(0, page * PAGE_SIZE), [filtered, page]);
   const hasMore = paginated.length < filtered.length;
   const selected = conversations.find(c => c.id === selectedId) || null;
+  const selectedStructured = selected ? safeStructured(selected) : null;
+  const selectedSegments = selected ? safeSegments(selected) : [];
+  const safeTemplates = templates || [];
 
   const allTasks = useMemo(() => {
     return conversations.filter(c => !c.deleted).flatMap(c => {
@@ -66,9 +69,9 @@ export function Home() {
     });
   }, [conversations]);
 
-  const selectedStructured = selected ? safeStructured(selected) : null;
-  const selectedSegments = selected ? safeSegments(selected) : [];
-  const safeTemplates = templates || [];
+  if (!selectedId && paginated.length > 0 && !loading) {
+    setTimeout(() => setSelectedId(paginated[0].id), 0);
+  }
 
   const handleReprocess = async () => {
     if (!selected) return;
@@ -90,21 +93,30 @@ export function Home() {
     finally { setTransforming(false); }
   };
 
-  return (
-    <div className="h-screen bg-[#f0f1f3] flex items-center justify-center p-6 font-sans antialiased overflow-hidden">
-      {/* The entire app is this card - fixed height, no body scroll */}
-      <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_-12px_rgba(0,0,0,0.08)] w-full max-w-[1400px] h-[90vh] flex flex-col lg:flex-row overflow-hidden">
+  // Drag to resize
+  const onMouseDown = useCallback(() => { dragging.current = true; }, []);
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!dragging.current || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const pct = ((e.clientX - rect.left) / rect.width) * 100;
+    setLeftWidth(Math.max(40, Math.min(85, pct)));
+  }, []);
+  const onMouseUp = useCallback(() => { dragging.current = false; }, []);
 
-        {/* LEFT PANEL: selected note detail (or empty state) */}
-        <div className="w-full lg:w-[45%] flex flex-col border-r border-gray-100 overflow-hidden">
-          {/* Logo + toggle + actions (fixed, no scroll) */}
-          <div className="flex items-center gap-3 p-8 lg:p-10 pb-4 shrink-0">
-            <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+  return (
+    <div className="h-screen bg-[#f0f1f3] flex items-center justify-center p-6 font-sans antialiased overflow-hidden"
+      onMouseMove={onMouseMove} onMouseUp={onMouseUp}>
+      <div ref={containerRef}
+        className="bg-white rounded-[2rem] shadow-[0_20px_60px_-12px_rgba(0,0,0,0.08)] w-full max-w-[1500px] h-[92vh] flex overflow-hidden select-none">
+
+        {/* ═══ LEFT PANEL ═══ */}
+        <div className="flex flex-col overflow-hidden border-r border-gray-100" style={{ width: `${leftWidth}%` }}>
+          {/* Header: logo + toggle + actions */}
+          <div className="flex items-center gap-3 px-8 pt-6 pb-3 shrink-0">
+            <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
               <path d="M24 4L41.3205 14V34L24 44L6.67949 34V14L24 4Z" fill="#111827"/>
               <path d="M18 24H30M30 24L25 19M30 24L25 29" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-
-            {/* Toggle inside the card */}
             <div className="flex bg-gray-100 rounded-lg p-0.5">
               <button onClick={() => setMode('notes')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all border-none cursor-pointer ${mode === 'notes' ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-400'}`}>
@@ -115,199 +127,207 @@ export function Home() {
                 <VscChecklist size={12} /> To-do
               </button>
             </div>
-
             <span className="flex-1" />
-            <Link to="/settings" className="text-gray-300 hover:text-gray-500 transition-colors"><VscSettingsGear size={16} /></Link>
-            <button onClick={() => logOut()} className="text-gray-300 hover:text-gray-500 bg-transparent border-none cursor-pointer transition-colors"><VscSignOut size={16} /></button>
+            <Link to="/settings" className="text-gray-500 hover:text-gray-700 transition-colors"><VscSettingsGear size={16} /></Link>
+            <button onClick={() => logOut()} className="text-gray-500 hover:text-gray-700 bg-transparent border-none cursor-pointer transition-colors"><VscSignOut size={16} /></button>
           </div>
 
-          {/* Scrollable content area */}
-          <div className="flex-1 overflow-y-auto px-8 lg:px-10 pb-8">
-          <AnimatePresence mode="wait">
-            {selected && mode === 'notes' ? (
-              <motion.div key={selected.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1">
-                {/* Title + actions */}
-                <div className="flex items-start gap-3 mb-4">
-                  <NoteIcon emoji={selectedStructured?.emoji} category={selectedStructured?.category} size={28} />
-                  <div className="flex-1 min-w-0">
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto px-8 pb-8">
+
+            {/* ── Notes detail ── */}
+            {mode === 'notes' && (
+              <AnimatePresence mode="wait">
+                {selected ? (
+                  <motion.div key={selected.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    {/* Title */}
                     <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-snug mb-1">{displayTitle(selected)}</h1>
-                    <div className="flex gap-2 text-xs text-gray-400">
+                    <div className="flex gap-2 text-xs text-gray-400 mb-4">
                       <span>{new Date(selected.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                       {conversationDuration(selected) && <span>{conversationDuration(selected)}</span>}
                       <span>{selectedSegments.length} seg</span>
+                      {selectedStructured?.category && selectedStructured.category !== 'general' && (
+                        <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{selectedStructured.category}</span>
+                      )}
                     </div>
-                  </div>
-                  <div className="flex gap-0.5 shrink-0">
-                    <MiniBtn icon={selected.starred ? <VscStarFull size={13} /> : <VscStarEmpty size={13} />}
-                      onClick={() => user && toggleStar(user.uid, selected.id, selected.starred)}
-                      className={selected.starred ? 'text-yellow-400' : ''} />
-                    <MiniBtn icon={<VscRefresh size={13} />} onClick={handleReprocess} />
-                    <MiniBtn icon={<VscCopy size={13} />} onClick={() => navigator.clipboard.writeText(selectedSegments.map(s => `${s.speaker}: ${s.text}`).join('\n'))} />
-                    <MiniBtn icon={<VscExport size={13} />} onClick={() => downloadText(`${displayTitle(selected).replace(/[^a-zA-Z0-9]/g, '_')}.md`, exportAsText(selected))} />
-                    <MiniBtn icon={<VscTrash size={13} />} onClick={() => user && confirm('Delete?') && softDelete(user.uid, selected.id)} className="text-red-300" />
-                  </div>
-                </div>
 
-                {/* Tabs: Overview / Smart Notes */}
-                <div className="flex gap-0 mb-6">
-                  {(['overview', 'smartnotes'] as const).map(t => (
-                    <button key={t} onClick={() => setTab(t)}
-                      className={`px-4 py-2 text-xs font-semibold bg-transparent border-none cursor-pointer transition-colors ${
-                        tab === t ? 'text-blue-600' : 'text-gray-300 hover:text-gray-500'
-                      }`}
-                      style={{ borderBottom: tab === t ? '2px solid #0071e3' : '2px solid transparent' }}>
-                      {t === 'overview' ? 'Overview' : 'Smart Notes'}
-                    </button>
-                  ))}
-                </div>
+                    {/* Action icons + tabs row */}
+                    <div className="flex items-center gap-1 mb-5 pb-3 border-b border-gray-100">
+                      {/* Action icons on left */}
+                      <Ic icon={selected.starred ? <VscStarFull size={14} /> : <VscStarEmpty size={14} />}
+                        onClick={() => user && toggleStar(user.uid, selected.id, selected.starred)}
+                        className={selected.starred ? '!text-yellow-500' : ''} title="Star" />
+                      <Ic icon={<VscRefresh size={14} />} onClick={handleReprocess} title="Re-generate" />
+                      <Ic icon={<VscFileCode size={14} />} onClick={() => setShowTranscript(!showTranscript)}
+                        className={showTranscript ? '!text-blue-600' : ''} title="Transcript" />
+                      <Ic icon={<VscCopy size={14} />} onClick={() => navigator.clipboard.writeText(selectedSegments.map(s => `${s.speaker}: ${s.text}`).join('\n'))} title="Copy transcript" />
+                      <Ic icon={<VscDesktopDownload size={14} />} onClick={() => downloadText(`${displayTitle(selected).replace(/[^a-zA-Z0-9]/g, '_')}.md`, exportAsText(selected))} title="Download" />
+                      <Ic icon={<VscTrash size={14} />} onClick={() => user && confirm('Delete?') && softDelete(user.uid, selected.id)} className="!text-red-400" title="Delete" />
 
-                {/* Tab content */}
-                <AnimatePresence mode="wait">
-                  <motion.div key={tab} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                    {tab === 'overview' && selectedStructured && (
-                      <div className="space-y-6">
-                        {selectedStructured.overview && (
-                          <div className="text-[15px] text-gray-600 leading-[1.8]">
-                            <MarkdownRenderer text={selectedStructured.overview} />
-                          </div>
-                        )}
+                      <span className="flex-1" />
 
-                        {/* Action items as todo list */}
-                        {selectedStructured.actionItems.length > 0 && (
-                          <div>
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                              Tasks ({selectedStructured.actionItems.filter(a => !a.completed).length}/{selectedStructured.actionItems.length})
+                      {/* Tabs on right */}
+                      {(['overview', 'smartnotes'] as const).map(t => (
+                        <button key={t} onClick={() => { setTab(t); setShowTranscript(false); }}
+                          className={`px-3 py-1.5 text-xs font-semibold bg-transparent border-none cursor-pointer transition-colors rounded-md ${
+                            tab === t && !showTranscript ? 'text-blue-600 bg-blue-50' : 'text-gray-400 hover:text-gray-600'
+                          }`}>
+                          {t === 'overview' ? 'Overview' : 'Smart Notes'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Transcript overlay */}
+                    {showTranscript && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-6">
+                        <div className="text-gray-600 leading-[1.8] space-y-4 text-[14px]">
+                          <p className="text-gray-300 uppercase tracking-wider text-[10px] font-semibold">---BEGIN TRANSCRIPT---</p>
+                          {selectedSegments.map(seg => (
+                            <p key={seg.id}>
+                              <span className="text-gray-300 text-[11px] mr-2 font-mono">{formatTimestamp(seg.start)}</span>
+                              <span className="font-medium text-gray-900">{seg.isUser ? 'You' : seg.speaker}:</span>{' '}
+                              <span className="text-gray-600">{seg.text}</span>
                             </p>
-                            <div className="space-y-2">
-                              {selectedStructured.actionItems.map((item, i) => (
-                                <div key={item.id} className={`flex items-start gap-3 p-3 rounded-xl ${CARD_COLORS[i % CARD_COLORS.length]}`}>
-                                  <span className={`w-5 h-5 rounded-md flex items-center justify-center text-xs shrink-0 mt-0.5 ${
-                                    item.completed ? 'bg-green-500 text-white' : 'bg-white/70 border-2 border-gray-300'
-                                  }`}>
-                                    {item.completed && '\u2713'}
-                                  </span>
-                                  <span className={`text-sm leading-relaxed ${item.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
-                                    {item.description}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Events */}
-                        {selectedStructured.events.length > 0 && (
-                          <div>
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Events</p>
-                            <div className="space-y-2">
-                              {selectedStructured.events.map((ev, i) => (
-                                <div key={i} className={`p-3 rounded-xl ${CARD_COLORS[(i + 3) % CARD_COLORS.length]}`}>
-                                  <p className="text-sm font-semibold text-gray-900">{ev.title}</p>
-                                  {ev.description && <p className="text-xs text-gray-500 mt-1">{ev.description}</p>}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {!selectedStructured.overview && selectedStructured.actionItems.length === 0 && (
-                          <p className="text-gray-300 text-sm">No insights yet. Click refresh to re-generate.</p>
-                        )}
-                      </div>
+                          ))}
+                          <p className="text-gray-300 uppercase tracking-wider text-[10px] font-semibold">---END TRANSCRIPT---</p>
+                        </div>
+                      </motion.div>
                     )}
 
-                    {tab === 'smartnotes' && (
-                      <div>
-                        {aiNotes ? (
-                          <div>
-                            <div className="flex items-center gap-2 mb-4">
-                              <VscSparkle size={14} className="text-blue-600" />
-                              <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">AI Enhanced</span>
-                              <span className="flex-1" />
-                              <button onClick={() => { setUserNotes(aiNotes); setAiNotes(''); }} className="text-xs text-gray-400 bg-transparent border-none cursor-pointer hover:text-gray-600">Edit</button>
-                              <button onClick={handleTransform} disabled={transforming} className="text-xs text-blue-600 bg-transparent border-none cursor-pointer font-semibold disabled:opacity-40">Regenerate</button>
-                              <button onClick={() => navigator.clipboard.writeText(aiNotes)} className="text-xs text-gray-400 bg-transparent border-none cursor-pointer hover:text-gray-600">Copy</button>
+                    {/* Tab content */}
+                    {!showTranscript && (
+                      <AnimatePresence mode="wait">
+                        <motion.div key={tab} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                          {tab === 'overview' && selectedStructured && (
+                            <div className="space-y-6">
+                              {selectedStructured.overview && (
+                                <div className="text-[15px] text-gray-600 leading-[1.8]">
+                                  <MarkdownRenderer text={selectedStructured.overview} />
+                                </div>
+                              )}
+                              {selectedStructured.actionItems.length > 0 && (
+                                <div>
+                                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                                    Tasks ({selectedStructured.actionItems.filter(a => !a.completed).length}/{selectedStructured.actionItems.length})
+                                  </p>
+                                  <div className="space-y-2">
+                                    {selectedStructured.actionItems.map((item, i) => (
+                                      <div key={item.id} className={`flex items-start gap-3 p-3 rounded-xl ${CARD_COLORS[i % CARD_COLORS.length]}`}>
+                                        <span className={`w-5 h-5 rounded-md flex items-center justify-center text-xs shrink-0 mt-0.5 ${
+                                          item.completed ? 'bg-green-500 text-white' : 'bg-white/70 border-2 border-gray-300'}`}>
+                                          {item.completed && '\u2713'}
+                                        </span>
+                                        <span className={`text-sm leading-relaxed ${item.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{item.description}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {selectedStructured.events.length > 0 && (
+                                <div>
+                                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Events</p>
+                                  <div className="space-y-2">
+                                    {selectedStructured.events.map((ev, i) => (
+                                      <div key={i} className={`p-3 rounded-xl ${CARD_COLORS[(i + 3) % CARD_COLORS.length]}`}>
+                                        <p className="text-sm font-semibold text-gray-900">{ev.title}</p>
+                                        {ev.description && <p className="text-xs text-gray-500 mt-1">{ev.description}</p>}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {!selectedStructured.overview && selectedStructured.actionItems.length === 0 && (
+                                <p className="text-gray-300 text-sm">No insights yet. Click refresh to re-generate.</p>
+                              )}
                             </div>
-                            <MarkdownRenderer text={aiNotes} />
-                          </div>
-                        ) : (
-                          <div>
-                            <textarea
-                              value={userNotes}
-                              onChange={e => setUserNotes(e.target.value)}
-                              placeholder={"Write your notes here...\n\n## Headings\n- Bullet points\n[placeholders]"}
-                              className="w-full min-h-[280px] p-5 border border-gray-200 rounded-2xl text-sm text-gray-900 leading-[1.8] resize-y outline-none placeholder:text-gray-300"
-                            />
-                            <button
-                              onClick={handleTransform}
-                              disabled={transforming || !userNotes.trim()}
-                              className="mt-3 px-5 py-2.5 bg-blue-600 text-white border-none rounded-xl text-sm font-semibold cursor-pointer flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                              <VscSparkle size={14} />
-                              {transforming ? 'Transforming...' : 'AI Transform'}
-                            </button>
-                            {safeTemplates.length > 0 && (
-                              <div className="flex gap-2 flex-wrap mt-4">
-                                {safeTemplates.map(t => (
-                                  <button key={t.id} onClick={() => setUserNotes(prev => prev ? prev + '\n\n' + t.content : t.content)}
-                                    className="px-3 py-1.5 bg-gray-50 border-none rounded-lg text-xs text-gray-400 cursor-pointer hover:bg-gray-100">{t.name}</button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                          )}
+
+                          {tab === 'smartnotes' && (
+                            <div>
+                              {aiNotes ? (
+                                <div>
+                                  <div className="flex items-center gap-2 mb-4">
+                                    <VscSparkle size={14} className="text-blue-600" />
+                                    <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">AI Enhanced</span>
+                                    <span className="flex-1" />
+                                    <button onClick={() => { setUserNotes(aiNotes); setAiNotes(''); }} className="text-xs text-gray-500 bg-transparent border-none cursor-pointer hover:text-gray-700">Edit</button>
+                                    <button onClick={handleTransform} disabled={transforming} className="text-xs text-blue-600 bg-transparent border-none cursor-pointer font-semibold disabled:opacity-40">Regenerate</button>
+                                    <button onClick={() => navigator.clipboard.writeText(aiNotes)} className="text-xs text-gray-500 bg-transparent border-none cursor-pointer hover:text-gray-700">Copy</button>
+                                  </div>
+                                  <MarkdownRenderer text={aiNotes} />
+                                </div>
+                              ) : (
+                                <div>
+                                  <textarea value={userNotes} onChange={e => setUserNotes(e.target.value)}
+                                    placeholder={"Write your notes here...\n\n## Headings\n- Bullet points\n[placeholders]"}
+                                    className="w-full min-h-[280px] p-5 border border-gray-200 rounded-2xl text-sm text-gray-900 leading-[1.8] resize-y outline-none placeholder:text-gray-300" />
+                                  <button onClick={handleTransform} disabled={transforming || !userNotes.trim()}
+                                    className="mt-3 px-5 py-2.5 bg-blue-600 text-white border-none rounded-xl text-sm font-semibold cursor-pointer flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                                    <VscSparkle size={14} />{transforming ? 'Transforming...' : 'AI Transform'}
+                                  </button>
+                                  {safeTemplates.length > 0 && (
+                                    <div className="flex gap-2 flex-wrap mt-4">
+                                      {safeTemplates.map(t => (
+                                        <button key={t.id} onClick={() => setUserNotes(prev => prev ? prev + '\n\n' + t.content : t.content)}
+                                          className="px-3 py-1.5 bg-gray-50 border-none rounded-lg text-xs text-gray-400 cursor-pointer hover:bg-gray-100">{t.name}</button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </motion.div>
+                      </AnimatePresence>
                     )}
                   </motion.div>
-                </AnimatePresence>
-              </motion.div>
-            ) : mode === 'notes' ? (
-              <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex items-center justify-center text-gray-300 text-sm">
-                Select a note to view details
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
+                ) : (
+                  <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex items-center justify-center text-gray-300 text-sm pt-20">
+                    Select a note to view details
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
 
-          {/* Todo mode in left panel */}
-          {mode === 'todo' && (
-            <div>
-              <h2 className="text-lg font-bold text-gray-900 mb-1">To-do</h2>
-              <p className="text-xs text-gray-400 mb-4">{allTasks.filter(t => !t.completed).length} pending</p>
-              <div className="space-y-2">
-                {allTasks.filter(t => !t.completed).map((task, i) => (
-                  <div key={task.id}
-                    onClick={() => onToggle(task, user?.uid)}
-                    className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer ${CARD_COLORS[i % CARD_COLORS.length]}`}>
-                    <span className="w-5 h-5 rounded-md bg-white/70 border-2 border-gray-300 shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 leading-relaxed">{task.description}</p>
-                      <p className="text-[10px] text-gray-400 mt-1">
-                        {task.convDate ? new Date(task.convDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
-                      </p>
+            {/* ── Todo mode ── */}
+            {mode === 'todo' && (
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 mb-1">To-do</h2>
+                <p className="text-xs text-gray-400 mb-4">{allTasks.filter(t => !t.completed).length} pending</p>
+                <div className="space-y-2">
+                  {allTasks.filter(t => !t.completed).map((task, i) => (
+                    <div key={task.id} onClick={() => { if (user) toggleTaskCompleted(user.uid, task.convId, task.id, true); }}
+                      className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer ${CARD_COLORS[i % CARD_COLORS.length]}`}>
+                      <span className="w-5 h-5 rounded-md bg-white/70 border-2 border-gray-300 shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 leading-relaxed">{task.description}</p>
+                        <p className="text-[10px] text-gray-400 mt-1">{task.convDate ? new Date(task.convDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                  {allTasks.filter(t => !t.completed).length === 0 && (
+                    <p className="text-gray-300 text-sm text-center py-8">All caught up!</p>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-          </div>{/* end scrollable content */}
+            )}
+          </div>
         </div>
 
-        {/* RIGHT PANEL: all notes as card columns */}
-        <div className="w-full lg:w-[55%] p-8 lg:p-10 overflow-y-auto bg-[#fafbfc]">
-          {/* Search */}
-          <div className="relative mb-6">
+        {/* ═══ RESIZE HANDLE ═══ */}
+        <div onMouseDown={onMouseDown}
+          className="w-1 cursor-col-resize hover:bg-blue-200 active:bg-blue-300 transition-colors shrink-0" />
+
+        {/* ═══ RIGHT PANEL: notes grid ═══ */}
+        <div className="flex-1 overflow-y-auto p-6 bg-[#fafbfc]">
+          <div className="relative mb-5">
             <VscSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
-            <input
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
+            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search notes..."
-              className="w-full py-2.5 pl-9 pr-3 bg-white border border-gray-100 rounded-xl text-sm text-gray-900 outline-none placeholder:text-gray-300"
-            />
+              className="w-full py-2.5 pl-9 pr-3 bg-white border border-gray-100 rounded-xl text-sm text-gray-900 outline-none placeholder:text-gray-300" />
           </div>
 
-          {/* Notes grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
             <AnimatePresence>
               {paginated.map((conv, i) => {
                 const s = safeStructured(conv);
@@ -318,33 +338,20 @@ export function Home() {
                 const color = CARD_COLORS[i % CARD_COLORS.length];
 
                 return (
-                  <motion.div
-                    key={conv.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.03 }}
-                    onClick={() => { setSelectedId(conv.id); setMode('notes'); setTab('overview'); }}
-                    className={`${color} p-5 rounded-2xl flex flex-col justify-between cursor-pointer transition-all ${
-                      isActive ? 'ring-2 ring-blue-500 ring-offset-2' : ''
-                    }`}
+                  <motion.div key={conv.id} layout
+                    initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.02 }}
+                    onClick={() => { setSelectedId(conv.id); setMode('notes'); setTab('overview'); setShowTranscript(false); }}
+                    className={`${color} p-4 rounded-2xl flex flex-col justify-between cursor-pointer transition-all ${isActive ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
                     style={{ aspectRatio: '1' }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
+                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <NoteIcon emoji={s.emoji} category={s.category} size={14} />
-                        <span className="text-[15px] font-semibold text-gray-900 leading-snug line-clamp-2">{displayTitle(conv)}</span>
-                      </div>
-                      {s.overview && (
-                        <p className="text-xs text-gray-900/50 leading-relaxed line-clamp-3">{s.overview}</p>
-                      )}
+                      <p className="text-[14px] font-semibold text-gray-900 leading-snug line-clamp-2 mb-1.5">{displayTitle(conv)}</p>
+                      {s.overview && <p className="text-[11px] text-gray-900/40 leading-relaxed line-clamp-3">{s.overview}</p>}
                     </div>
-
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="text-[10px] text-black/25">{date} {dur && `· ${dur}`}</span>
-                      <span className="text-[10px] text-black/25">{segs.length} seg{s.actionItems.length > 0 ? ` · ${s.actionItems.filter(a => !a.completed).length} tasks` : ''}</span>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-[10px] text-black/25">{date}{dur ? ` · ${dur}` : ''}</span>
+                      <span className="text-[10px] text-black/25">{segs.length} seg{s.actionItems.filter(a => !a.completed).length > 0 ? ` · ${s.actionItems.filter(a => !a.completed).length} tasks` : ''}</span>
                     </div>
                   </motion.div>
                 );
@@ -358,25 +365,18 @@ export function Home() {
               Load more ({filtered.length - paginated.length})
             </button>
           )}
-
-          {!loading && filtered.length === 0 && (
-            <p className="text-center py-16 text-gray-300 text-sm">No notes yet</p>
-          )}
+          {!loading && filtered.length === 0 && <p className="text-center py-16 text-gray-300 text-sm">No notes yet</p>}
         </div>
       </div>
     </div>
   );
 }
 
-function MiniBtn({ icon, onClick, className = '' }: { icon: React.ReactNode; onClick: () => void; className?: string }) {
+function Ic({ icon, onClick, className = '', title }: { icon: React.ReactNode; onClick: () => void; className?: string; title?: string }) {
   return (
-    <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={onClick}
-      className={`bg-transparent border-none text-gray-300 cursor-pointer p-1 flex rounded transition-colors hover:text-gray-500 ${className}`}>
+    <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={onClick} title={title}
+      className={`bg-transparent border-none text-gray-500 cursor-pointer p-1.5 flex rounded-md transition-colors hover:text-gray-700 hover:bg-gray-50 ${className}`}>
       {icon}
     </motion.button>
   );
-}
-
-function onToggle(task: any, uid?: string) {
-  if (uid) toggleTaskCompleted(uid, task.convId, task.id, !task.completed);
 }
