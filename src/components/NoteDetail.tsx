@@ -7,7 +7,7 @@ import { displayTitle, conversationDuration, safeStructured, safeSegments, forma
 import { toggleStar, softDelete, exportAsText, downloadText, reprocessConversation } from '../lib/actions';
 import { MarkdownRenderer } from './MarkdownRenderer';
 
-type Tab = 'overview' | 'transcript' | 'smartnotes';
+type Tab = 'overview' | 'smartnotes';
 
 interface Props {
   conv: Conversation;
@@ -22,7 +22,7 @@ export function NoteDetail({ conv, uid, templates, preferences, savedNotes, save
   const structured = safeStructured(conv);
   const segments = safeSegments(conv);
   const duration = conversationDuration(conv);
-  const date = new Date(conv.createdAt).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const date = new Date(conv.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const time = new Date(conv.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
   const [tab, setTab] = useState<Tab>('overview');
@@ -50,11 +50,10 @@ export function NoteDetail({ conv, uid, templates, preferences, savedNotes, save
     finally { setTransforming(false); }
   };
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: 'overview', label: 'Overview' },
-    { key: 'transcript', label: `Transcript` },
-    { key: 'smartnotes', label: 'Smart Notes' },
-  ];
+  const handleSelectTemplate = (t: NoteTemplate) => {
+    setUserNotes(prev => prev ? prev + '\n\n' + t.content : t.content);
+    setAiNotes('');
+  };
 
   return (
     <motion.div
@@ -63,77 +62,69 @@ export function NoteDetail({ conv, uid, templates, preferences, savedNotes, save
       exit={{ opacity: 0 }}
       style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
     >
-      {/* Header: emoji + title + overview (shown once, not repeated in tab) */}
-      <div style={{ padding: '32px 48px 0', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-          {structured.emoji && <span style={{ fontSize: 40, lineHeight: 1 }}>{structured.emoji}</span>}
-          <div style={{ flex: 1 }}>
-            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, color: 'var(--fg)', lineHeight: 1.25, letterSpacing: -0.5 }}>
-              {displayTitle(conv)}
-            </h1>
-            {structured.overview && (
-              <p style={{ margin: '8px 0 0', fontSize: 15, color: 'var(--fg-muted)', lineHeight: 1.6 }}>
-                {structured.overview}
-              </p>
-            )}
+      {/* Header: title only + actions + tabs in corner */}
+      <div style={{ padding: '24px 40px 0', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+          {structured.emoji && <span style={{ fontSize: 32 }}>{structured.emoji}</span>}
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: '#1d1d1f', flex: 1, letterSpacing: -0.5, lineHeight: 1.2 }}>
+            {displayTitle(conv)}
+          </h1>
+
+          {/* Tabs in top-right */}
+          <div style={{ display: 'flex', background: '#f0f0f2', borderRadius: 10, padding: 3 }}>
+            {(['overview', 'smartnotes'] as Tab[]).map(t => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                style={{
+                  padding: '7px 16px', fontSize: 13, fontWeight: 500,
+                  background: tab === t ? '#fff' : 'transparent',
+                  color: tab === t ? '#1d1d1f' : '#86868b',
+                  border: 'none', borderRadius: 8, cursor: 'pointer',
+                  boxShadow: tab === t ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {t === 'overview' ? 'Overview' : 'Smart Notes'}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Meta + actions row */}
-        <div style={{ display: 'flex', alignItems: 'center', marginTop: 16, paddingBottom: 16, borderBottom: '1px solid var(--border-light)' }}>
-          <div style={{ display: 'flex', gap: 12, fontSize: 13, color: 'var(--fg-subtle)', flex: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Meta + actions */}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0 16px', borderBottom: '1px solid #e8e8ed' }}>
+          <div style={{ display: 'flex', gap: 10, fontSize: 13, color: '#aeaeb2', flex: 1 }}>
             <span>{date}</span>
             <span>{time}</span>
             {duration && <span>{duration}</span>}
             <span>{segments.length} segments</span>
             {structured.category && structured.category !== 'general' && (
-              <span style={{ background: 'var(--bg-surface)', padding: '3px 10px', borderRadius: 6, fontSize: 12, color: 'var(--fg-muted)' }}>{structured.category}</span>
+              <span style={{ background: '#f0f0f2', padding: '2px 8px', borderRadius: 6, fontSize: 12 }}>{structured.category}</span>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 4 }}>
-            <IconBtn icon={conv.starred ? <VscStarFull size={15} /> : <VscStarEmpty size={15} />}
+          <div style={{ display: 'flex', gap: 2 }}>
+            <IBtn icon={conv.starred ? <VscStarFull size={15} /> : <VscStarEmpty size={15} />}
               onClick={() => uid && toggleStar(uid, conv.id, conv.starred)}
-              style={{ color: conv.starred ? 'var(--yellow)' : undefined }} />
-            <IconBtn icon={<VscRefresh size={15} />} onClick={handleReprocess} />
-            <IconBtn icon={<VscCopy size={15} />} onClick={() => navigator.clipboard.writeText(segments.map(s => `${s.speaker}: ${s.text}`).join('\n'))} />
-            <IconBtn icon={<VscExport size={15} />} onClick={() => downloadText(`${displayTitle(conv).replace(/[^a-zA-Z0-9]/g, '_')}.md`, exportAsText(conv))} />
-            <IconBtn icon={<VscTrash size={15} />} onClick={() => uid && confirm('Delete?') && softDelete(uid, conv.id)} style={{ color: 'var(--red)' }} />
+              style={{ color: conv.starred ? '#ffcc00' : undefined }} />
+            <IBtn icon={<VscRefresh size={15} />} onClick={handleReprocess} />
+            <IBtn icon={<VscCopy size={15} />} onClick={() => navigator.clipboard.writeText(segments.map(s => `${s.speaker}: ${s.text}`).join('\n'))} />
+            <IBtn icon={<VscExport size={15} />} onClick={() => downloadText(`${displayTitle(conv).replace(/[^a-zA-Z0-9]/g, '_')}.md`, exportAsText(conv))} />
+            <IBtn icon={<VscTrash size={15} />} onClick={() => uid && confirm('Delete?') && softDelete(uid, conv.id)} style={{ color: '#ff3b30' }} />
           </div>
-        </div>
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 0, marginTop: 4 }}>
-          {tabs.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              style={{
-                padding: '12px 20px', fontSize: 14, fontWeight: 500,
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: tab === t.key ? 'var(--accent)' : 'var(--fg-muted)',
-                borderBottom: tab === t.key ? '2px solid var(--accent)' : '2px solid transparent',
-                transition: 'color 0.15s',
-              }}
-            >
-              {t.label}
-              {t.key === 'transcript' && <span style={{ marginLeft: 4, fontSize: 12, opacity: 0.5 }}>({segments.length})</span>}
-            </button>
-          ))}
         </div>
       </div>
 
-      {/* Tab content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 48px 60px' }}>
+      {/* Content */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 40px 60px' }}>
         <AnimatePresence mode="wait">
-          <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
-            {tab === 'overview' && <OverviewPanel structured={structured} segments={segments} />}
-            {tab === 'transcript' && <TranscriptPanel segments={segments} />}
+          <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+            {tab === 'overview' && <OverviewTab structured={structured} segments={segments} />}
             {tab === 'smartnotes' && (
-              <SmartNotesPanel
+              <SmartNotesTab
                 userNotes={userNotes} setUserNotes={setUserNotes}
                 aiNotes={aiNotes} setAiNotes={setAiNotes}
                 transforming={transforming} onTransform={handleTransform}
-                templates={templates}
+                onSelectTemplate={handleSelectTemplate} templates={templates}
               />
             )}
           </motion.div>
@@ -143,194 +134,208 @@ export function NoteDetail({ conv, uid, templates, preferences, savedNotes, save
   );
 }
 
-function IconBtn({ icon, onClick, style }: { icon: React.ReactNode; onClick: () => void; style?: React.CSSProperties }) {
+function IBtn({ icon, onClick, style }: { icon: React.ReactNode; onClick: () => void; style?: React.CSSProperties }) {
   return (
     <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={onClick}
-      style={{ background: 'none', border: 'none', color: 'var(--fg-subtle)', cursor: 'pointer', padding: 6, display: 'flex', borderRadius: 6, ...style }}>
+      style={{ background: 'none', border: 'none', color: '#aeaeb2', cursor: 'pointer', padding: 6, display: 'flex', borderRadius: 6, ...style }}>
       {icon}
     </motion.button>
   );
 }
 
-/* ─── Overview: split layout like reference image ─── */
-/* Left: transcript excerpt, Right: colored insight cards grid */
-function OverviewPanel({ structured, segments }: { structured: ReturnType<typeof safeStructured>; segments: ReturnType<typeof safeSegments> }) {
-  const hasInsights = structured.actionItems.length > 0 || structured.events.length > 0;
-  const hasTranscript = segments.length > 0;
-
-  if (!structured.overview && !hasInsights && !hasTranscript) {
-    return <div style={{ color: 'var(--fg-subtle)', fontSize: 15, padding: '40px 0' }}>No insights yet. Click the refresh icon to re-generate.</div>;
-  }
-
-  // Collect all insight cards (action items + events)
-  const cards: { title: string; subtitle: string; color: string }[] = [];
-  const cardColors = ['#fef3c7', '#dcfce7', '#fce7f3', '#dbeafe', '#f3e8ff', '#ffedd5', '#e0f2fe', '#fef9c3'];
-
-  structured.actionItems.forEach((item, i) => {
-    cards.push({ title: item.description, subtitle: item.completed ? 'completed' : 'pending', color: cardColors[i % cardColors.length] });
-  });
-  structured.events.forEach((ev, i) => {
-    cards.push({ title: ev.title, subtitle: ev.description || `${ev.durationMinutes} min`, color: cardColors[(i + structured.actionItems.length) % cardColors.length] });
-  });
+/* ─── Overview: text overview + to-do style tasks + transcript excerpt ─── */
+function OverviewTab({ structured, segments }: { structured: ReturnType<typeof safeStructured>; segments: ReturnType<typeof safeSegments> }) {
+  const noContent = !structured.overview && structured.actionItems.length === 0 && segments.length === 0;
+  if (noContent) return <div style={{ color: '#aeaeb2', fontSize: 15, padding: '40px 0' }}>No insights yet. Click the refresh icon to re-generate.</div>;
 
   return (
     <div style={{ display: 'flex', gap: 40 }}>
-      {/* Left: transcript excerpt */}
+      {/* Left: overview text + transcript */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        {hasTranscript && (
-          <>
-            <div style={{ fontSize: 12, color: 'var(--fg-subtle)', marginBottom: 16, letterSpacing: 1 }}>
-              ---BEGIN TRANSCRIPT---
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {segments.slice(0, 15).map(seg => {
-                const speakerColors: Record<number, string> = {};
-                const colors = ['var(--accent)', '#34c759', '#ff2d55', '#ff9500', '#af52de)', '#5ac8fa'];
-                if (!speakerColors[seg.speakerId]) speakerColors[seg.speakerId] = colors[seg.speakerId % colors.length];
+        {structured.overview && (
+          <div style={{ marginBottom: 28 }}>
+            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.75, color: '#424245' }}>{structured.overview}</p>
+          </div>
+        )}
 
-                return (
-                  <div key={seg.id}>
-                    <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--fg)' }}>{seg.speaker}: </span>
-                    <span style={{ fontSize: 14, color: 'var(--fg-secondary)', lineHeight: 1.7 }}>{seg.text}</span>
-                  </div>
-                );
-              })}
-              {segments.length > 15 && (
-                <div style={{ fontSize: 13, color: 'var(--fg-subtle)', fontStyle: 'italic' }}>
-                  ...and {segments.length - 15} more segments
+        {segments.length > 0 && (
+          <div>
+            <div style={{ fontSize: 11, color: '#aeaeb2', marginBottom: 14, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>Transcript</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {segments.slice(0, 12).map(seg => (
+                <div key={seg.id} style={{ fontSize: 14, color: '#424245', lineHeight: 1.7 }}>
+                  <span style={{ fontWeight: 600, color: '#1d1d1f' }}>{seg.speaker}: </span>
+                  {seg.text}
                 </div>
+              ))}
+              {segments.length > 12 && (
+                <div style={{ fontSize: 13, color: '#aeaeb2', fontStyle: 'italic' }}>+{segments.length - 12} more segments</div>
               )}
             </div>
-          </>
+          </div>
         )}
       </div>
 
-      {/* Right: colored insight cards grid (like reference) */}
-      {cards.length > 0 && (
-        <div style={{ width: 420, flexShrink: 0 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-            {cards.map((card, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.04 }}
-                style={{
-                  background: card.color,
-                  borderRadius: 10,
-                  padding: 14,
-                  minHeight: 100,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#1d1d1f', lineHeight: 1.4 }}>
-                  {card.title.length > 60 ? card.title.slice(0, 60) + '...' : card.title}
-                </div>
-                <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', marginTop: 8, fontStyle: 'italic' }}>
-                  {card.subtitle}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+      {/* Right: to-do list style action items + events */}
+      {(structured.actionItems.length > 0 || structured.events.length > 0) && (
+        <div style={{ width: 340, flexShrink: 0 }}>
+          {structured.actionItems.length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 11, color: '#aeaeb2', marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>
+                To-do ({structured.actionItems.filter(a => !a.completed).length}/{structured.actionItems.length})
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {structured.actionItems.map((item, i) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 10,
+                      padding: '10px 14px', background: '#f9f9fb', borderRadius: 10,
+                      border: '1px solid #e8e8ed',
+                    }}
+                  >
+                    <span style={{
+                      width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12,
+                      background: item.completed ? '#34c759' : '#fff',
+                      border: item.completed ? 'none' : '2px solid #d2d2d7',
+                      color: '#fff',
+                    }}>
+                      {item.completed && '\u2713'}
+                    </span>
+                    <span style={{
+                      fontSize: 14, color: item.completed ? '#aeaeb2' : '#1d1d1f',
+                      textDecoration: item.completed ? 'line-through' : 'none', lineHeight: 1.5,
+                    }}>
+                      {item.description}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {structured.events.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, color: '#aeaeb2', marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>Events</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {structured.events.map((ev, i) => {
+                  const colors = ['#dbeafe', '#dcfce7', '#fce7f3', '#fef3c7', '#f3e8ff'];
+                  return (
+                    <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                      style={{ padding: 12, borderRadius: 10, background: colors[i % colors.length] }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#1d1d1f', marginBottom: 2 }}>{ev.title}</div>
+                      {ev.description && <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.5)' }}>{ev.description}</div>}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-/* ─── Transcript: clean full view ─── */
-function TranscriptPanel({ segments }: { segments: ReturnType<typeof safeSegments> }) {
-  if (segments.length === 0) return <div style={{ color: 'var(--fg-subtle)', fontSize: 15, padding: '40px 0' }}>No transcript available.</div>;
-
-  return (
-    <div style={{ maxWidth: 700 }}>
-      <div style={{ fontSize: 12, color: 'var(--fg-subtle)', marginBottom: 20, letterSpacing: 1 }}>---BEGIN TRANSCRIPT---</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {segments.map((seg, i) => (
-          <motion.div key={seg.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i * 0.015, 0.4) }}>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <span style={{ fontSize: 12, color: 'var(--fg-subtle)', flexShrink: 0, paddingTop: 2, fontVariantNumeric: 'tabular-nums' }}>
-                {formatTimestamp(seg.start)}
-              </span>
-              <div>
-                <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--fg)' }}>{seg.isUser ? 'You' : seg.speaker}: </span>
-                <span style={{ fontSize: 14, color: 'var(--fg-secondary)', lineHeight: 1.7 }}>{seg.text}</span>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      <div style={{ fontSize: 12, color: 'var(--fg-subtle)', marginTop: 20, letterSpacing: 1 }}>---END TRANSCRIPT---</div>
-    </div>
-  );
-}
-
-/* ─── Smart Notes ─── */
-function SmartNotesPanel({ userNotes, setUserNotes, aiNotes, setAiNotes, transforming, onTransform, templates }: {
+/* ─── Smart Notes: big editor UI ─── */
+function SmartNotesTab({ userNotes, setUserNotes, aiNotes, setAiNotes, transforming, onTransform, onSelectTemplate, templates }: {
   userNotes: string; setUserNotes: (v: string) => void;
   aiNotes: string; setAiNotes: (v: string) => void;
   transforming: boolean; onTransform: () => void;
+  onSelectTemplate: (t: NoteTemplate) => void;
   templates: NoteTemplate[];
 }) {
   if (aiNotes) {
     return (
-      <div style={{ maxWidth: 700 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
-          <VscSparkle size={14} style={{ color: 'var(--accent)' }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 1 }}>AI Enhanced Notes</span>
-        </div>
-        <div style={{ background: 'var(--bg)', borderRadius: 12, padding: 28, border: '1px solid var(--border-light)' }}>
-          <MarkdownRenderer text={aiNotes} />
-        </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+          <VscSparkle size={16} style={{ color: '#0071e3' }} />
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#0071e3', textTransform: 'uppercase', letterSpacing: 1 }}>AI Enhanced</span>
+          <span style={{ flex: 1 }} />
           <Pill label="Edit" onClick={() => { setUserNotes(aiNotes); setAiNotes(''); }} />
           <Pill label="Regenerate" onClick={onTransform} accent disabled={transforming} />
           <Pill label="Copy" onClick={() => navigator.clipboard.writeText(aiNotes)} />
+        </div>
+        <div style={{ background: '#fafafa', borderRadius: 14, padding: 32, border: '1px solid #e8e8ed', minHeight: 300 }}>
+          <MarkdownRenderer text={aiNotes} />
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 700 }}>
+    <div>
+      {/* Templates */}
       {templates.length > 0 && (
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 8, fontWeight: 500 }}>Templates</div>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: '#86868b', marginBottom: 8, fontWeight: 500 }}>Insert template</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {templates.map(t => (
-              <motion.button key={t.id} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => setUserNotes(t.content)}
-                style={{ padding: '6px 14px', fontSize: 13, background: 'var(--bg-surface)', border: 'none', borderRadius: 8, color: 'var(--fg-muted)', cursor: 'pointer', fontWeight: 500 }}>
+              <motion.button
+                key={t.id}
+                whileHover={{ scale: 1.04, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+                whileTap={{ scale: 0.96 }}
+                onClick={() => onSelectTemplate(t)}
+                style={{
+                  padding: '8px 16px', fontSize: 13, fontWeight: 500,
+                  background: '#fff', border: '1px solid #e8e8ed', borderRadius: 10,
+                  color: '#424245', cursor: 'pointer',
+                }}
+              >
                 {t.name}
               </motion.button>
             ))}
           </div>
         </div>
       )}
-      <textarea
-        value={userNotes}
-        onChange={e => setUserNotes(e.target.value)}
-        placeholder={"Write your notes template here...\n\nUse ## headings, - bullets, and [placeholders].\nThen click AI Transform."}
-        style={{
-          width: '100%', minHeight: 220, padding: 20, background: 'var(--bg)',
-          border: '1px solid var(--border-light)', borderRadius: 12, color: 'var(--fg)',
-          fontSize: 15, lineHeight: 1.7, resize: 'vertical', outline: 'none',
-          fontFamily: 'var(--font)',
-        }}
-      />
+
+      {/* Editor */}
+      <div style={{
+        border: '1px solid #d2d2d7', borderRadius: 14, overflow: 'hidden',
+        background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+      }}>
+        {/* Editor toolbar */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+          background: '#fafafa', borderBottom: '1px solid #e8e8ed', fontSize: 12, color: '#86868b',
+        }}>
+          <span style={{ fontWeight: 600 }}>Editor</span>
+          <span style={{ flex: 1 }} />
+          <span>{userNotes.length} chars</span>
+        </div>
+
+        <textarea
+          value={userNotes}
+          onChange={e => setUserNotes(e.target.value)}
+          placeholder={"Start writing your notes here...\n\nTips:\n  ## Use headings for sections\n  - Bullet points for key items\n  [date] [attendees] as placeholders\n\nClick a template above to get started, or write freely.\nThen hit AI Transform to enhance with transcript context."}
+          style={{
+            width: '100%', minHeight: 360, padding: '20px 24px',
+            border: 'none', color: '#1d1d1f', fontSize: 15, lineHeight: 1.8,
+            resize: 'vertical', outline: 'none', background: '#fff',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif',
+          }}
+        />
+      </div>
+
+      {/* Transform button */}
       <motion.button
-        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+        whileHover={{ scale: 1.02, boxShadow: '0 4px 14px rgba(0,113,227,0.3)' }}
+        whileTap={{ scale: 0.98 }}
         onClick={onTransform}
         disabled={transforming || !userNotes.trim()}
         style={{
-          marginTop: 14, padding: '11px 22px', display: 'flex', alignItems: 'center', gap: 8,
-          background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 10,
-          fontSize: 14, fontWeight: 600, cursor: transforming || !userNotes.trim() ? 'not-allowed' : 'pointer',
+          marginTop: 16, padding: '13px 28px', display: 'flex', alignItems: 'center', gap: 8,
+          background: '#0071e3', color: '#fff', border: 'none', borderRadius: 12,
+          fontSize: 15, fontWeight: 600, cursor: transforming || !userNotes.trim() ? 'not-allowed' : 'pointer',
           opacity: transforming || !userNotes.trim() ? 0.5 : 1,
+          boxShadow: '0 2px 8px rgba(0,113,227,0.2)',
         }}
       >
-        <VscSparkle size={15} />
+        <VscSparkle size={16} />
         {transforming ? 'Transforming...' : 'AI Transform'}
       </motion.button>
     </div>
@@ -341,9 +346,8 @@ function Pill({ label, onClick, accent, disabled }: { label: string; onClick: ()
   return (
     <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={onClick} disabled={disabled}
       style={{
-        padding: '7px 16px', fontSize: 13, fontWeight: 500,
-        background: accent ? 'var(--accent)' : 'var(--bg-surface)',
-        color: accent ? '#fff' : 'var(--fg-muted)',
+        padding: '6px 14px', fontSize: 12, fontWeight: 500,
+        background: accent ? '#0071e3' : '#f0f0f2', color: accent ? '#fff' : '#86868b',
         border: 'none', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
       }}>
       {label}

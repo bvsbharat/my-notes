@@ -12,6 +12,19 @@ import { displayTitle, safeStructured, safeSegments, conversationDuration } from
 
 const PAGE_SIZE = 10;
 
+const CARD_COLORS = [
+  ['#fef3c7', '#92400e'],  // amber
+  ['#dcfce7', '#166534'],  // green
+  ['#dbeafe', '#1e40af'],  // blue
+  ['#fce7f3', '#9d174d'],  // pink
+  ['#f3e8ff', '#6b21a8'],  // purple
+  ['#ffedd5', '#9a3412'],  // orange
+  ['#e0f2fe', '#075985'],  // sky
+  ['#fef9c3', '#854d0e'],  // yellow
+  ['#f0fdf4', '#15803d'],  // emerald
+  ['#fdf2f8', '#be185d'],  // rose
+];
+
 export function Home() {
   const { user, logOut } = useAuth();
   const { conversations, loading } = useConversations(user?.uid);
@@ -45,81 +58,81 @@ export function Home() {
   }
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f5f5f7' }}>
       {/* Top bar */}
-      <header style={{ background: '#fff', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', padding: '0 20px', height: 52, flexShrink: 0 }}>
-        <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--accent)', letterSpacing: -0.3 }}>
-          SuperNotes
-        </span>
+      <header style={{ background: '#fff', borderBottom: '1px solid #e8e8ed', display: 'flex', alignItems: 'center', padding: '0 20px', height: 52, flexShrink: 0 }}>
+        <span style={{ fontWeight: 700, fontSize: 16, color: '#1d1d1f', letterSpacing: -0.3 }}>SuperNotes</span>
         <span style={{ flex: 1 }} />
-        <Link to="/settings" style={{ color: 'var(--fg-muted)', display: 'flex', padding: 6 }}><VscSettingsGear size={17} /></Link>
-        <button onClick={() => logOut()} style={{ background: 'none', border: 'none', color: 'var(--fg-muted)', cursor: 'pointer', padding: 6, display: 'flex' }}><VscSignOut size={17} /></button>
+        <Link to="/settings" style={{ color: '#86868b', display: 'flex', padding: 6 }}><VscSettingsGear size={17} /></Link>
+        <button onClick={() => logOut()} style={{ background: 'none', border: 'none', color: '#86868b', cursor: 'pointer', padding: 6, display: 'flex' }}><VscSignOut size={17} /></button>
       </header>
 
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-        {/* LEFT: Sidebar */}
-        <div style={{ width: 300, flexShrink: 0, borderRight: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', background: '#fff' }}>
-          {/* Search */}
+        {/* LEFT: Colorful note cards */}
+        <div style={{ width: 320, flexShrink: 0, borderRight: '1px solid #e8e8ed', display: 'flex', flexDirection: 'column', background: '#fafafa' }}>
           <div style={{ padding: 12, position: 'relative' }}>
-            <VscSearch size={14} style={{ position: 'absolute', left: 22, top: '50%', transform: 'translateY(-50%)', color: 'var(--fg-subtle)' }} />
+            <VscSearch size={14} style={{ position: 'absolute', left: 22, top: '50%', transform: 'translateY(-50%)', color: '#aeaeb2' }} />
             <input
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search notes..."
-              style={{
-                width: '100%', padding: '10px 12px 10px 34px', background: 'var(--bg-surface)',
-                border: 'none', borderRadius: 10, color: 'var(--fg)', fontSize: 14,
-                fontFamily: 'var(--font)', outline: 'none',
-              }}
+              style={{ width: '100%', padding: '10px 12px 10px 34px', background: '#fff', border: '1px solid #e8e8ed', borderRadius: 10, color: '#1d1d1f', fontSize: 14, outline: 'none' }}
             />
           </div>
 
-          <div style={{ fontSize: 12, color: 'var(--fg-muted)', padding: '0 16px 8px', fontWeight: 500 }}>
+          <div style={{ fontSize: 12, color: '#86868b', padding: '0 16px 8px', fontWeight: 500 }}>
             {loading ? 'Loading...' : `${filtered.length} notes`}
           </div>
 
-          {/* List */}
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 10px 16px' }}>
             <AnimatePresence>
-              {paginated.map(conv => {
+              {paginated.map((conv, idx) => {
                 const s = safeStructured(conv);
                 const segs = safeSegments(conv);
                 const dur = conversationDuration(conv);
                 const isActive = conv.id === selectedId;
                 const date = new Date(conv.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const [bg, fg] = CARD_COLORS[idx % CARD_COLORS.length];
 
                 return (
                   <motion.div
                     key={conv.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.03 }}
                     onClick={() => setSelectedId(conv.id)}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     style={{
-                      padding: '12px 16px', cursor: 'pointer',
-                      background: isActive ? 'var(--accent-light)' : 'transparent',
-                      borderLeft: isActive ? '3px solid var(--accent)' : '3px solid transparent',
-                      transition: 'all 0.15s ease',
+                      padding: 14, marginBottom: 8, borderRadius: 14, cursor: 'pointer',
+                      background: bg,
+                      border: isActive ? '2px solid #0071e3' : '2px solid transparent',
+                      boxShadow: isActive ? '0 2px 12px rgba(0,113,227,0.15)' : '0 1px 3px rgba(0,0,0,0.04)',
+                      transition: 'border 0.15s, box-shadow 0.15s',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                      {s.emoji && <span style={{ fontSize: 14 }}>{s.emoji}</span>}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      {s.emoji && <span style={{ fontSize: 16 }}>{s.emoji}</span>}
                       <span style={{
-                        fontWeight: 600, fontSize: 14, color: isActive ? 'var(--accent)' : 'var(--fg)',
+                        fontWeight: 700, fontSize: 14, color: fg,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
-                        letterSpacing: -0.2,
                       }}>
                         {displayTitle(conv)}
                       </span>
-                      {conv.starred && <span style={{ color: 'var(--yellow)', fontSize: 13 }}>{'\u2605'}</span>}
+                      {conv.starred && <span style={{ fontSize: 12 }}>{'\u2B50'}</span>}
                     </div>
 
                     {s.overview && (
-                      <div style={{ fontSize: 13, color: 'var(--fg-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4, lineHeight: 1.4 }}>
+                      <div style={{
+                        fontSize: 12, color: fg, opacity: 0.7, lineHeight: 1.4,
+                        overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
+                        marginBottom: 6,
+                      }}>
                         {s.overview}
                       </div>
                     )}
 
-                    <div style={{ display: 'flex', gap: 8, fontSize: 11, color: 'var(--fg-subtle)' }}>
+                    <div style={{ display: 'flex', gap: 8, fontSize: 10, color: fg, opacity: 0.5 }}>
                       <span>{date}</span>
                       {dur && <span>{dur}</span>}
                       <span>{segs.length} seg</span>
@@ -133,34 +146,32 @@ export function Home() {
             </AnimatePresence>
 
             {hasMore && (
-              <div style={{ padding: '8px 16px 16px' }}>
-                <button onClick={() => setPage(p => p + 1)} style={{
-                  width: '100%', padding: 10, background: 'var(--bg-surface)', border: 'none',
-                  borderRadius: 10, color: 'var(--accent)', fontSize: 13, fontWeight: 500, cursor: 'pointer',
-                }}>
-                  Load more ({filtered.length - paginated.length})
-                </button>
+              <button onClick={() => setPage(p => p + 1)} style={{
+                width: '100%', padding: 10, marginTop: 4, background: '#fff', border: '1px solid #e8e8ed',
+                borderRadius: 10, color: '#0071e3', fontSize: 13, fontWeight: 500, cursor: 'pointer',
+              }}>
+                Load more ({filtered.length - paginated.length})
+              </button>
+            )}
+
+            {!loading && filtered.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '40px 16px', color: '#86868b', fontSize: 14 }}>
+                {search ? 'No matches' : 'No notes yet'}
               </div>
             )}
           </div>
         </div>
 
-        {/* RIGHT: Detail */}
+        {/* RIGHT */}
         <div style={{ flex: 1, overflowY: 'auto', background: '#fff' }}>
           <AnimatePresence mode="wait">
             {selected ? (
-              <NoteDetail
-                key={selected.id}
-                conv={selected}
-                uid={user?.uid}
-                templates={templates}
-                preferences={preferences}
-                savedNotes={savedNotes}
-                saveNote={saveNote}
-              />
+              <NoteDetail key={selected.id} conv={selected} uid={user?.uid}
+                templates={templates} preferences={preferences}
+                savedNotes={savedNotes} saveNote={saveNote} />
             ) : (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fg-subtle)', fontSize: 15 }}>
+                style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aeaeb2', fontSize: 15 }}>
                 Select a note to view
               </motion.div>
             )}
