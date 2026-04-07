@@ -1,5 +1,72 @@
 @import "tailwindcss";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+@import "@fontsource/jetbrains-mono/700.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+
+:root {
+  /* Dracula theme */
+  --bg: #282a36;
+  --bg-secondary: #21222c;
+  --bg-card: #44475a;
+  --bg-card-hover: #4e5270;
+  --bg-surface: #383a4a;
+  --fg: #f8f8f2;
+  --fg-muted: #6272a4;
+  --fg-subtle: #8b95c9;
+  --accent: #bd93f9;
+  --accent-hover: #caa8ff;
+  --green: #50fa7b;
+  --cyan: #8be9fd;
+  --orange: #ffb86c;
+  --pink: #ff79c6;
+  --red: #ff5555;
+  --yellow: #f1fa8c;
+  --purple: #bd93f9;
+  --border: #44475a;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+[data-theme="light"] {
+  --bg: #fafbfc;
+  --bg-secondary: #f0f1f4;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f5f6fa;
+  --bg-surface: #eef0f5;
+  --fg: #24292e;
+  --fg-muted: #6a737d;
+  --fg-subtle: #959da5;
+  --accent: #8b5cf6;
+  --accent-hover: #7c3aed;
+  --green: #22c55e;
+  --cyan: #06b6d4;
+  --orange: #f59e0b;
+  --pink: #ec4899;
+  --red: #ef4444;
+  --yellow: #eab308;
+  --purple: #8b5cf6;
+  --border: #e1e4e8;
+}
 
 body {
   margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
+
+* { box-sizing: border-box; }
+
+::selection {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--fg-muted); border-radius: 3px; }

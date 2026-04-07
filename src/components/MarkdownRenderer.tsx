@@ -1,56 +1,41 @@
-// Simple markdown renderer for AI-enhanced notes
-// Handles: headings, bold, bullets, blockquotes, checkboxes
-
 export function MarkdownRenderer({ text }: { text: string }) {
   const lines = text.split('\n');
 
   return (
-    <div className="space-y-1">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {lines.map((line, i) => {
         const trimmed = line.trim();
-        if (!trimmed) return <div key={i} className="h-2" />;
+        if (!trimmed) return <div key={i} style={{ height: 6 }} />;
 
-        // Headings
         if (trimmed.startsWith('### '))
-          return <h4 key={i} className="text-sm font-semibold text-gray-800 mt-3 mb-1">{renderInline(trimmed.slice(4))}</h4>;
+          return <h4 key={i} style={{ fontSize: 13, fontWeight: 600, color: 'var(--cyan)', margin: '8px 0 2px', fontFamily: 'var(--font-mono)' }}>{renderInline(trimmed.slice(4))}</h4>;
         if (trimmed.startsWith('## '))
-          return <h3 key={i} className="text-base font-semibold text-gray-900 mt-4 mb-1">{renderInline(trimmed.slice(3))}</h3>;
+          return <h3 key={i} style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)', margin: '10px 0 4px', fontFamily: 'var(--font-mono)' }}>{renderInline(trimmed.slice(3))}</h3>;
         if (trimmed.startsWith('# '))
-          return <h2 key={i} className="text-lg font-bold text-gray-900 mt-4 mb-2">{renderInline(trimmed.slice(2))}</h2>;
+          return <h2 key={i} style={{ fontSize: 16, fontWeight: 700, color: 'var(--fg)', margin: '10px 0 4px', fontFamily: 'var(--font-mono)' }}>{renderInline(trimmed.slice(2))}</h2>;
 
-        // Blockquote
         if (trimmed.startsWith('> '))
-          return <blockquote key={i} className="border-l-2 border-gray-300 pl-3 text-sm text-gray-500 italic">{renderInline(trimmed.slice(2))}</blockquote>;
+          return <blockquote key={i} style={{ borderLeft: '2px solid var(--fg-muted)', paddingLeft: 10, margin: '4px 0', color: 'var(--fg-muted)', fontSize: 13, fontStyle: 'italic' }}>{renderInline(trimmed.slice(2))}</blockquote>;
 
-        // Checkbox
         if (trimmed.startsWith('- [x] '))
-          return <div key={i} className="flex items-start gap-2 text-sm text-gray-400 line-through ml-4"><span>&#9745;</span><span>{renderInline(trimmed.slice(6))}</span></div>;
+          return <div key={i} style={{ display: 'flex', gap: 6, marginLeft: 8, color: 'var(--fg-muted)', fontSize: 13 }}><span style={{ color: 'var(--green)' }}>{'\u2713'}</span><span style={{ textDecoration: 'line-through' }}>{renderInline(trimmed.slice(6))}</span></div>;
         if (trimmed.startsWith('- [ ] '))
-          return <div key={i} className="flex items-start gap-2 text-sm text-gray-700 ml-4"><span>&#9744;</span><span>{renderInline(trimmed.slice(6))}</span></div>;
+          return <div key={i} style={{ display: 'flex', gap: 6, marginLeft: 8, fontSize: 13, color: 'var(--fg)' }}><span style={{ color: 'var(--fg-muted)' }}>{'\u25CB'}</span><span>{renderInline(trimmed.slice(6))}</span></div>;
 
-        // Bullet
         if (trimmed.startsWith('- '))
-          return <div key={i} className="flex items-start gap-2 text-sm text-gray-700 ml-4"><span className="text-gray-400 mt-1.5 text-[6px]">&#9679;</span><span>{renderInline(trimmed.slice(2))}</span></div>;
+          return <div key={i} style={{ display: 'flex', gap: 6, marginLeft: 8, fontSize: 13, color: 'var(--fg)' }}><span style={{ color: 'var(--accent)' }}>{'\u2022'}</span><span>{renderInline(trimmed.slice(2))}</span></div>;
 
-        // Numbered
-        const numMatch = trimmed.match(/^(\d+)\.\s/);
-        if (numMatch)
-          return <div key={i} className="flex items-start gap-2 text-sm text-gray-700 ml-4"><span className="text-gray-400 text-xs w-4 shrink-0">{numMatch[1]}.</span><span>{renderInline(trimmed.slice(numMatch[0].length))}</span></div>;
-
-        // Paragraph
-        return <p key={i} className="text-sm text-gray-700 leading-relaxed">{renderInline(trimmed)}</p>;
+        return <p key={i} style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--fg)', margin: 0 }}>{renderInline(trimmed)}</p>;
       })}
     </div>
   );
 }
 
 function renderInline(text: string): React.ReactNode {
-  // Handle **bold** markers
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong>;
-    }
+    if (part.startsWith('**') && part.endsWith('**'))
+      return <strong key={i} style={{ fontWeight: 600, color: 'var(--fg)' }}>{part.slice(2, -2)}</strong>;
     return <span key={i}>{part}</span>;
   });
 }
