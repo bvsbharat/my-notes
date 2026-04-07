@@ -6,6 +6,7 @@ import type { Conversation, NoteTemplate, AIPreferences, SmartNote } from '../li
 import { displayTitle, conversationDuration, safeStructured, safeSegments, formatTimestamp } from '../lib/types';
 import { toggleStar, softDelete, exportAsText, downloadText, reprocessConversation } from '../lib/actions';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { NoteIcon } from '../lib/noteIcons';
 
 type Tab = 'overview' | 'transcript' | 'smartnotes';
 
@@ -62,7 +63,7 @@ export function NoteDetail({ conv, uid, templates, preferences, savedNotes, save
       {/* Header: title + tabs + actions */}
       <div style={{ padding: '20px 36px 0', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          {structured.emoji && <span style={{ fontSize: 28 }}>{structured.emoji}</span>}
+          <NoteIcon emoji={structured.emoji} category={structured.category} size={26} />
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#1d1d1f', flex: 1, letterSpacing: -0.4 }}>
             {displayTitle(conv)}
           </h1>

@@ -102,7 +102,7 @@ export function TodoView({ tasks, onSelectConversation, onToggleTask, onDeleteTa
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
                       fontSize: 15, fontWeight: 600, lineHeight: 1.5,
-                      color: task.completed ? '#aeaeb2' : c.text,
+                      color: task.completed ? '#aeaeb2' : '#1d1d1f',
                       textDecoration: task.completed ? 'line-through' : 'none',
                     }}>
                       {task.description}
@@ -115,7 +115,7 @@ export function TodoView({ tasks, onSelectConversation, onToggleTask, onDeleteTa
                       whileHover={{ scale: 1.2 }}
                       whileTap={{ scale: 0.8 }}
                       onClick={() => onDeleteTask(task.convId, task.id)}
-                      style={{ background: 'none', border: 'none', color: task.completed ? '#aeaeb2' : c.text, opacity: 0.4, cursor: 'pointer', padding: 2 }}
+                      style={{ background: 'none', border: 'none', color: task.completed ? '#aeaeb2' : '#86868b', cursor: 'pointer', padding: 2 }}
                     >
                       <VscTrash size={14} />
                     </motion.button>
@@ -126,7 +126,7 @@ export function TodoView({ tasks, onSelectConversation, onToggleTask, onDeleteTa
                 <button
                   onClick={() => onSelectConversation(task.convId)}
                   style={{
-                    fontSize: 11, color: task.completed ? '#aeaeb2' : c.text, opacity: 0.6,
+                    fontSize: 11, color: task.completed ? '#aeaeb2' : '#86868b',
                     background: 'none', border: 'none', padding: 0, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', gap: 4, textAlign: 'left',
                   }}

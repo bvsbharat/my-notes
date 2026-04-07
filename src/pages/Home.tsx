@@ -11,6 +11,7 @@ import { NoteDetail } from '../components/NoteDetail';
 import { TodoView } from '../components/TodoView';
 import { displayTitle, safeStructured, safeSegments, conversationDuration } from '../lib/types';
 import { toggleTaskCompleted, deleteTask } from '../lib/actions';
+import { NoteIcon } from '../lib/noteIcons';
 
 const PAGE_SIZE = 10;
 
@@ -131,8 +132,8 @@ export function Home() {
                         transition: 'background 0.15s',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                        {s.emoji && <span style={{ fontSize: 15 }}>{s.emoji}</span>}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                        <NoteIcon emoji={s.emoji} category={s.category} size={16} />
                         <span style={{
                           fontWeight: 600, fontSize: 14, color: '#1d1d1f',
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
