@@ -123,26 +123,14 @@ export function Home() {
         className="bg-white rounded-[2rem] shadow-[0_20px_60px_-12px_rgba(0,0,0,0.08)] w-full max-w-[1500px] h-[92vh] flex overflow-hidden select-none">
 
         {/* ═══ LEFT PANEL ═══ */}
-        <div className="flex flex-col overflow-hidden border-r border-gray-100" style={{ width: `${leftWidth}%` }}>
-          {/* Header: logo + toggle + actions */}
+        <div className="flex flex-col overflow-hidden border-r border-gray-100 relative" style={{ width: `${leftWidth}%` }}>
+          {/* Header: logo only */}
           <div className="flex items-center gap-3 px-8 pt-6 pb-3 shrink-0">
             <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
               <path d="M24 4L41.3205 14V34L24 44L6.67949 34V14L24 4Z" fill="#111827"/>
               <path d="M18 24H30M30 24L25 19M30 24L25 29" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <div className="flex bg-gray-100 rounded-lg p-0.5">
-              <button onClick={() => setMode('notes')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all border-none cursor-pointer ${mode === 'notes' ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-400'}`}>
-                <VscNote size={12} /> Notes
-              </button>
-              <button onClick={() => setMode('todo')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all border-none cursor-pointer ${mode === 'todo' ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-400'}`}>
-                <VscChecklist size={12} /> To-do
-              </button>
-            </div>
-            <span className="flex-1" />
-            <Link to="/settings" className="text-gray-500 hover:text-gray-700 transition-colors"><VscSettingsGear size={16} /></Link>
-            <button onClick={() => logOut()} className="text-gray-500 hover:text-gray-700 bg-transparent border-none cursor-pointer transition-colors"><VscSignOut size={16} /></button>
+            <span className="text-sm font-bold text-gray-900 tracking-tight">SuperNotes</span>
           </div>
 
           {/* Scrollable content */}
@@ -314,6 +302,25 @@ export function Home() {
             {mode === 'todo' && (
               <TodoSection allTasks={allTasks} uid={user?.uid} />
             )}
+          </div>
+
+          {/* ═══ BOTTOM DOCK ═══ */}
+          <div className="shrink-0 flex justify-center pb-4 pt-2">
+            <div className="flex items-center gap-1 bg-gray-900 rounded-2xl px-2 py-1.5 shadow-lg">
+              <button onClick={() => setMode('notes')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all border-none cursor-pointer ${
+                  mode === 'notes' ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-400 hover:text-gray-200'}`}>
+                <VscNote size={13} /> Notes
+              </button>
+              <button onClick={() => setMode('todo')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all border-none cursor-pointer ${
+                  mode === 'todo' ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-400 hover:text-gray-200'}`}>
+                <VscChecklist size={13} /> To-do
+              </button>
+              <div className="w-px h-5 bg-gray-700 mx-1" />
+              <Link to="/settings" className="text-gray-400 hover:text-gray-200 p-2 flex transition-colors"><VscSettingsGear size={14} /></Link>
+              <button onClick={() => logOut()} className="text-gray-400 hover:text-gray-200 bg-transparent border-none cursor-pointer p-2 flex transition-colors"><VscSignOut size={14} /></button>
+            </div>
           </div>
         </div>
 
