@@ -10,6 +10,7 @@ import { useNotes } from '../hooks/useNotes';
 import { NoteDetail } from '../components/NoteDetail';
 import { TodoView } from '../components/TodoView';
 import { displayTitle, safeStructured, safeSegments, conversationDuration } from '../lib/types';
+import { toggleTaskCompleted, deleteTask } from '../lib/actions';
 
 const PAGE_SIZE = 10;
 
@@ -80,7 +81,12 @@ export function Home() {
       {/* Todo mode */}
       {mode === 'todo' && (
         <div style={{ flex: 1, overflowY: 'auto', background: '#fff' }}>
-          <TodoView tasks={allTasks} onSelectConversation={(id) => { setSelectedId(id); setMode('notes'); }} />
+          <TodoView
+            tasks={allTasks}
+            onSelectConversation={(id) => { setSelectedId(id); setMode('notes'); }}
+            onToggleTask={(convId, taskId, completed) => { if (user) toggleTaskCompleted(user.uid, convId, taskId, completed); }}
+            onDeleteTask={(convId, taskId) => { if (user) deleteTask(user.uid, convId, taskId); }}
+          />
         </div>
       )}
 

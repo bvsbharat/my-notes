@@ -1,7 +1,7 @@
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from './firebase';
-import type { Conversation } from './types';
+import type { Conversation, ActionItem } from './types';
 import { safeSegments, safeStructured, displayTitle } from './types';
 
 export async function toggleStar(uid: string, conversationId: string, currentStarred: boolean) {
@@ -56,6 +56,26 @@ export function exportAsText(conv: Conversation): string {
   }
 
   return lines.join('\n');
+}
+
+export async function toggleTaskCompleted(uid: string, conversationId: string, taskId: string, completed: boolean) {
+  const ref = doc(db, 'users', uid, 'conversations', conversationId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const data = snap.data();
+  const items: ActionItem[] = data.structured?.actionItems || [];
+  const updated = items.map(item => item.id === taskId ? { ...item, completed } : item);
+  await updateDoc(ref, { 'structured.actionItems': updated });
+}
+
+export async function deleteTask(uid: string, conversationId: string, taskId: string) {
+  const ref = doc(db, 'users', uid, 'conversations', conversationId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const data = snap.data();
+  const items: ActionItem[] = data.structured?.actionItems || [];
+  const updated = items.filter(item => item.id !== taskId);
+  await updateDoc(ref, { 'structured.actionItems': updated });
 }
 
 export async function reprocessConversation(conversationId: string): Promise<{ success: boolean; title?: string }> {

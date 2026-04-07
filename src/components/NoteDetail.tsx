@@ -228,8 +228,10 @@ function SmartNotesTab({ userNotes, setUserNotes, aiNotes, setAiNotes, transform
   aiNotes: string; setAiNotes: (v: string) => void;
   transforming: boolean; onTransform: () => void;
   onSelectTemplate: (t: NoteTemplate) => void;
-  templates: NoteTemplate[];
+  templates?: NoteTemplate[];
 }) {
+  const safeTemplates = templates || [];
+
   if (aiNotes) {
     return (
       <div style={{ padding: '28px 36px 60px' }}>
@@ -241,7 +243,7 @@ function SmartNotesTab({ userNotes, setUserNotes, aiNotes, setAiNotes, transform
           <Pill label="Regenerate" onClick={onTransform} accent disabled={transforming} />
           <Pill label="Copy" onClick={() => navigator.clipboard.writeText(aiNotes)} />
         </div>
-        <div style={{ padding: 32, minHeight: 300 }}>
+        <div style={{ minHeight: 300 }}>
           <MarkdownRenderer text={aiNotes} />
         </div>
       </div>
@@ -250,38 +252,19 @@ function SmartNotesTab({ userNotes, setUserNotes, aiNotes, setAiNotes, transform
 
   return (
     <div style={{ padding: '28px 36px 60px' }}>
-      {templates.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 13, color: '#86868b', marginBottom: 8, fontWeight: 500 }}>Insert template</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {templates.map(t => (
-              <motion.button key={t.id} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                onClick={() => onSelectTemplate(t)}
-                style={{ padding: '8px 16px', fontSize: 13, fontWeight: 500, background: '#fff', border: '1px solid #d2d2d7', borderRadius: 10, color: '#424245', cursor: 'pointer' }}>
-                {t.name}
-              </motion.button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Editor first */}
+      <textarea
+        value={userNotes}
+        onChange={e => setUserNotes(e.target.value)}
+        placeholder={"Start writing your notes here...\n\nTips:\n  ## Use headings for sections\n  - Bullet points for key items\n  [date] [attendees] as placeholders\n\nOr use a template below to get started.\nThen hit AI Transform to enhance with transcript context."}
+        style={{
+          width: '100%', minHeight: 400, padding: '20px 24px', border: '1px solid #e8e8ed',
+          borderRadius: 14, color: '#1d1d1f',
+          fontSize: 15, lineHeight: 1.8, resize: 'vertical', outline: 'none', background: '#fff',
+        }}
+      />
 
-      <div style={{ borderRadius: 14, overflow: 'hidden', background: '#fff' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 12, color: '#86868b' }}>
-          <span style={{ fontWeight: 600 }}>Editor</span>
-          <span style={{ flex: 1 }} />
-          <span>{userNotes.length} chars</span>
-        </div>
-        <textarea
-          value={userNotes}
-          onChange={e => setUserNotes(e.target.value)}
-          placeholder={"Start writing your notes here...\n\nTips:\n  ## Use headings for sections\n  - Bullet points for key items\n  [date] [attendees] as placeholders\n\nClick a template above to get started.\nThen hit AI Transform to enhance with transcript context."}
-          style={{
-            width: '100%', minHeight: 400, padding: '20px 24px', border: 'none', color: '#1d1d1f',
-            fontSize: 15, lineHeight: 1.8, resize: 'vertical', outline: 'none', background: '#fff',
-          }}
-        />
-      </div>
-
+      {/* AI Transform button */}
       <motion.button
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
@@ -297,6 +280,22 @@ function SmartNotesTab({ userNotes, setUserNotes, aiNotes, setAiNotes, transform
         <VscSparkle size={16} />
         {transforming ? 'Transforming...' : 'AI Transform'}
       </motion.button>
+
+      {/* Templates below the button */}
+      {safeTemplates.length > 0 && (
+        <div style={{ marginTop: 24 }}>
+          <div style={{ fontSize: 13, color: '#86868b', marginBottom: 10, fontWeight: 500 }}>Or start from a template</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {safeTemplates.map(t => (
+              <motion.button key={t.id} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                onClick={() => onSelectTemplate(t)}
+                style={{ padding: '8px 16px', fontSize: 13, fontWeight: 500, background: '#fff', border: '1px solid #e8e8ed', borderRadius: 10, color: '#424245', cursor: 'pointer' }}>
+                {t.name}
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
