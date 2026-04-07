@@ -304,24 +304,6 @@ export function Home() {
             )}
           </div>
 
-          {/* ═══ BOTTOM DOCK ═══ */}
-          <div className="shrink-0 flex justify-center pb-4 pt-2">
-            <div className="flex items-center gap-1 bg-gray-900 rounded-2xl px-2 py-1.5 shadow-lg">
-              <button onClick={() => setMode('notes')}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all border-none cursor-pointer ${
-                  mode === 'notes' ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-400 hover:text-gray-200'}`}>
-                <VscNote size={13} /> Notes
-              </button>
-              <button onClick={() => setMode('todo')}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all border-none cursor-pointer ${
-                  mode === 'todo' ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-400 hover:text-gray-200'}`}>
-                <VscChecklist size={13} /> To-do
-              </button>
-              <div className="w-px h-5 bg-gray-700 mx-1" />
-              <Link to="/settings" className="text-gray-400 hover:text-gray-200 p-2 flex transition-colors"><VscSettingsGear size={14} /></Link>
-              <button onClick={() => logOut()} className="text-gray-400 hover:text-gray-200 bg-transparent border-none cursor-pointer p-2 flex transition-colors"><VscSignOut size={14} /></button>
-            </div>
-          </div>
         </div>
 
         {/* ═══ RESIZE HANDLE ═══ */}
@@ -329,7 +311,7 @@ export function Home() {
           className="w-1 cursor-col-resize hover:bg-blue-200 active:bg-blue-300 transition-colors shrink-0" />
 
         {/* ═══ RIGHT PANEL: notes grid ═══ */}
-        <div className="flex-1 overflow-y-auto p-6 bg-[#fafbfc]">
+        <div className="flex-1 overflow-y-auto p-6 bg-[#ffffff]">
           <div className="relative mb-5">
             <VscSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
@@ -352,7 +334,8 @@ export function Home() {
                     initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: i * 0.02 }}
                     onClick={() => { setSelectedId(conv.id); setMode('notes'); setTab('overview'); setShowTranscript(false); }}
-                    className={`${color} p-4 rounded-2xl flex flex-col justify-between cursor-pointer transition-all min-h-[140px] ${isActive ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
+                    className={`${color} p-4 rounded-2xl flex flex-col justify-between cursor-pointer transition-all min-h-[140px] ${isActive ? 'ring-2 ring-offset-2' : ''}`}
+                     style={isActive ? { '--tw-ring-color': '#6a7282' } as React.CSSProperties : {}}
                     whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <div>
                       <p className="text-[14px] font-semibold text-gray-900 leading-snug line-clamp-2 mb-1.5">{displayTitle(conv)}</p>
@@ -375,6 +358,25 @@ export function Home() {
             </button>
           )}
           {!loading && filtered.length === 0 && <p className="text-center py-16 text-gray-300 text-sm">No notes yet</p>}
+        </div>
+      </div>
+
+      {/* ═══ BOTTOM DOCK - centered to window ═══ */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+        <div className="flex items-center gap-1 bg-white/80 backdrop-blur-xl rounded-2xl px-2 py-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-gray-200/50">
+          <button onClick={() => setMode('notes')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all border-none cursor-pointer ${
+              mode === 'notes' ? 'bg-gray-900 text-white shadow-sm' : 'bg-transparent text-gray-400 hover:text-gray-600'}`}>
+            <VscNote size={13} /> Notes
+          </button>
+          <button onClick={() => setMode('todo')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all border-none cursor-pointer ${
+              mode === 'todo' ? 'bg-gray-900 text-white shadow-sm' : 'bg-transparent text-gray-400 hover:text-gray-600'}`}>
+            <VscChecklist size={13} /> To-do
+          </button>
+          <div className="w-px h-5 bg-gray-200 mx-1" />
+          <Link to="/settings" className="text-gray-400 hover:text-gray-600 p-2 flex transition-colors"><VscSettingsGear size={14} /></Link>
+          <button onClick={() => logOut()} className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-2 flex transition-colors"><VscSignOut size={14} /></button>
         </div>
       </div>
     </div>
