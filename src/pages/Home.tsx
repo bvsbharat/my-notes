@@ -48,7 +48,7 @@ export function Home() {
   const allTasks = useMemo(() => {
     return conversations.filter(c => !c.deleted).flatMap(c => {
       const s = safeStructured(c);
-      return s.actionItems.map(item => ({ ...item, convId: c.id, convTitle: displayTitle(c), convEmoji: s.emoji }));
+      return s.actionItems.map(item => ({ ...item, convId: c.id, convTitle: displayTitle(c), convEmoji: s.emoji, convDate: c.createdAt }));
     });
   }, [conversations]);
 
