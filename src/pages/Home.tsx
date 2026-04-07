@@ -389,36 +389,50 @@ function TodoSection({ allTasks, uid }: { allTasks: any[]; uid?: string }) {
         {(['all', 'pending', 'done'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className={`px-3 py-1.5 text-xs font-semibold border-none rounded-lg cursor-pointer transition-all ${
-              filter === f ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-400 hover:text-gray-600'}`}>
+              filter === f ? 'bg-gray-900 text-white' : 'bg-transparent text-gray-400 hover:text-gray-600'}`}>
             {f === 'all' ? `All (${allTasks.length})` : f === 'pending' ? `Pending (${pending.length})` : `Done (${done.length})`}
           </button>
         ))}
       </div>
 
-      <div className="space-y-2">
-        {shown.map((task: any, i: number) => (
-          <div key={task.id}
-            onClick={() => uid && toggleTaskCompleted(uid, task.convId, task.id, !task.completed)}
-            className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer ${task.completed ? 'bg-gray-50' : CARD_COLORS[i % CARD_COLORS.length]}`}>
-            <span className={`w-5 h-5 rounded-md flex items-center justify-center text-xs shrink-0 mt-0.5 transition-colors ${
-              task.completed ? 'bg-green-500 text-white' : 'bg-white/70 border-2 border-gray-300 hover:border-green-400'}`}>
-              {task.completed && '\u2713'}
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-medium leading-relaxed ${task.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{task.description}</p>
-              <p className="text-[10px] text-gray-400 mt-1">
-                {task.convDate ? new Date(task.convDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
-                {task.completed && ' · click to undo'}
-              </p>
-            </div>
-          </div>
-        ))}
-        {shown.length === 0 && (
-          <p className="text-gray-300 text-sm text-center py-8">
-            {filter === 'pending' ? 'All caught up!' : filter === 'done' ? 'No completed tasks' : 'No tasks yet'}
-          </p>
-        )}
+      {/* Same card grid style as notes on right panel */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <AnimatePresence>
+          {shown.map((task: any, i: number) => {
+            const color = task.completed ? 'bg-gray-100' : CARD_COLORS[i % CARD_COLORS.length];
+            const date = task.convDate ? new Date(task.convDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+            return (
+              <motion.div key={task.id} layout
+                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ delay: i * 0.02 }}
+                onClick={() => uid && toggleTaskCompleted(uid, task.convId, task.id, !task.completed)}
+                className={`${color} p-4 rounded-2xl flex flex-col justify-between cursor-pointer min-h-[120px]`}
+                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <div className="flex items-start gap-2.5">
+                  <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] shrink-0 mt-0.5 ${
+                    task.completed ? 'bg-gray-900 text-white' : 'border-2 border-gray-900'}`}>
+                    {task.completed && '\u2713'}
+                  </span>
+                  <p className={`text-[14px] font-semibold leading-snug line-clamp-3 ${task.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                    {task.description}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-[10px] text-black/25">{date}</span>
+                  <span className="text-[10px] text-black/25">{task.completed ? 'click to undo' : task.convTitle}</span>
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
+
+      {shown.length === 0 && (
+        <p className="text-gray-300 text-sm text-center py-8">
+          {filter === 'pending' ? 'All caught up!' : filter === 'done' ? 'No completed tasks' : 'No tasks yet'}
+        </p>
+      )}
     </div>
   );
 }
