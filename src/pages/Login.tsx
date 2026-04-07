@@ -1,38 +1,23 @@
 import { motion } from 'motion/react';
 import { useAuth } from '../hooks/useAuth';
 import { Navigate } from 'react-router-dom';
-import { VscGithub } from 'react-icons/vsc';
 
 export function Login() {
   const { user, loading, signIn } = useAuth();
-
-  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', color: 'var(--fg-muted)' }}>loading...</div>;
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#86868b' }}>Loading...</div>;
   if (user) return <Navigate to="/" replace />;
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        style={{ textAlign: 'center' }}
-      >
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 32, fontWeight: 700, color: 'var(--accent)', marginBottom: 8 }}>
-          {'>'} supernotes
-        </div>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--fg-muted)', marginBottom: 32 }}>
-          // your ai-powered transcript notes
-        </p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f7' }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ textAlign: 'center' }}>
+        <h1 style={{ fontSize: 34, fontWeight: 700, color: '#1d1d1f', margin: '0 0 8px', letterSpacing: -0.5 }}>SuperNotes</h1>
+        <p style={{ fontSize: 16, color: '#86868b', margin: '0 0 32px' }}>AI-powered transcript notes</p>
         <motion.button
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.96 }}
+          whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
           onClick={() => signIn()}
-          style={{
-            padding: '12px 28px', background: 'var(--accent)', color: 'var(--bg)',
-            border: 'none', borderRadius: 8, fontSize: 14,
-            fontFamily: 'var(--font-mono)', fontWeight: 600, cursor: 'pointer',
-          }}
+          style={{ padding: '13px 32px', background: '#0071e3', color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 600, cursor: 'pointer', letterSpacing: -0.2 }}
         >
-          sign in with google
+          Sign in with Google
         </motion.button>
       </motion.div>
     </div>
