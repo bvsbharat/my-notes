@@ -7,7 +7,7 @@ import { useConversations } from '../hooks/useConversations';
 import { useTemplates } from '../hooks/useTemplates';
 import { useSettings } from '../hooks/useSettings';
 import { useNotes } from '../hooks/useNotes';
-import { NoteDetail } from '../components/NoteDetail';
+import { NoteDetailCard } from '../components/NoteDetailCard';
 import { TodoView } from '../components/TodoView';
 import { displayTitle, safeStructured, safeSegments, conversationDuration } from '../lib/types';
 import { toggleTaskCompleted, deleteTask } from '../lib/actions';
@@ -44,7 +44,6 @@ export function Home() {
   const hasMore = paginated.length < filtered.length;
   const selected = conversations.find(c => c.id === selectedId) || null;
 
-  // All pending tasks across all conversations
   const allTasks = useMemo(() => {
     return conversations.filter(c => !c.deleted).flatMap(c => {
       const s = safeStructured(c);
@@ -57,60 +56,62 @@ export function Home() {
   }
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f5f5f7' }}>
-      {/* Top bar */}
-      <header style={{ background: '#fff', borderBottom: '1px solid #e8e8ed', display: 'flex', alignItems: 'center', padding: '0 20px', height: 52, flexShrink: 0 }}>
-        {/* Mode switch (like SOLO toggle from reference) */}
-        <div style={{ display: 'flex', background: '#1d1d1f', borderRadius: 10, padding: 3, marginRight: 16 }}>
-          <button onClick={() => setMode('notes')} style={{
-            padding: '6px 14px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 8, cursor: 'pointer',
-            background: mode === 'notes' ? '#fff' : 'transparent', color: mode === 'notes' ? '#1d1d1f' : '#86868b',
-            display: 'flex', alignItems: 'center', gap: 5, transition: 'all 0.15s',
-          }}><VscNote size={14} /> Notes</button>
-          <button onClick={() => setMode('todo')} style={{
-            padding: '6px 14px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 8, cursor: 'pointer',
-            background: mode === 'todo' ? '#fff' : 'transparent', color: mode === 'todo' ? '#1d1d1f' : '#86868b',
-            display: 'flex', alignItems: 'center', gap: 5, transition: 'all 0.15s',
-          }}><VscChecklist size={14} /> To-do</button>
+    <div className="min-h-screen bg-[#f8f9fa] font-sans antialiased">
+      {/* Header */}
+      <header className="flex items-center px-6 h-14 bg-white/80 backdrop-blur-sm sticky top-0 z-20">
+        {/* Logo */}
+        <svg width="32" height="32" viewBox="0 0 48 48" fill="none" className="mr-3">
+          <path d="M24 4L41.3205 14V34L24 44L6.67949 34V14L24 4Z" fill="#111827"/>
+          <path d="M18 24H30M30 24L25 19M30 24L25 29" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+
+        {/* Toggle: Notes / To-do */}
+        <div className="flex bg-gray-100 rounded-lg p-0.5 mr-4">
+          <button onClick={() => setMode('notes')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${mode === 'notes' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}>
+            <VscNote size={13} /> Notes
+          </button>
+          <button onClick={() => setMode('todo')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${mode === 'todo' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}>
+            <VscChecklist size={13} /> To-do
+          </button>
         </div>
 
-        <span style={{ flex: 1 }} />
-        <Link to="/settings" style={{ color: '#86868b', display: 'flex', padding: 6 }}><VscSettingsGear size={17} /></Link>
-        <button onClick={() => logOut()} style={{ background: 'none', border: 'none', color: '#86868b', cursor: 'pointer', padding: 6, display: 'flex' }}><VscSignOut size={17} /></button>
+        <span className="flex-1" />
+        <Link to="/settings" className="text-gray-400 hover:text-gray-600 p-2"><VscSettingsGear size={17} /></Link>
+        <button onClick={() => logOut()} className="text-gray-400 hover:text-gray-600 p-2 bg-transparent border-none cursor-pointer"><VscSignOut size={17} /></button>
       </header>
 
       {/* Todo mode */}
       {mode === 'todo' && (
-        <div style={{ flex: 1, overflowY: 'auto', background: '#fff' }}>
-          <TodoView
-            tasks={allTasks}
-            onSelectConversation={(id) => { setSelectedId(id); setMode('notes'); }}
-            onToggleTask={(convId, taskId, completed) => { if (user) toggleTaskCompleted(user.uid, convId, taskId, completed); }}
-            onDeleteTask={(convId, taskId) => { if (user) deleteTask(user.uid, convId, taskId); }}
-          />
-        </div>
+        <TodoView
+          tasks={allTasks}
+          onSelectConversation={(id) => { setSelectedId(id); setMode('notes'); }}
+          onToggleTask={(convId, taskId, completed) => { if (user) toggleTaskCompleted(user.uid, convId, taskId, completed); }}
+          onDeleteTask={(convId, taskId) => { if (user) deleteTask(user.uid, convId, taskId); }}
+        />
       )}
 
       {/* Notes mode */}
       {mode === 'notes' && (
-        <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-          {/* LEFT sidebar - no background color, blends with content */}
-          <div style={{ width: 320, flexShrink: 0, borderRight: '1px solid #e8e8ed', display: 'flex', flexDirection: 'column', background: '#fff' }}>
-            <div style={{ padding: 12, position: 'relative' }}>
-              <VscSearch size={14} style={{ position: 'absolute', left: 22, top: '50%', transform: 'translateY(-50%)', color: '#aeaeb2' }} />
+        <div className="flex h-[calc(100vh-56px)]">
+          {/* LEFT: Note list */}
+          <div className="w-[300px] shrink-0 flex flex-col bg-white border-r border-gray-100">
+            <div className="p-3 relative">
+              <VscSearch size={14} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300" />
               <input
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
                 placeholder="Search notes..."
-                style={{ width: '100%', padding: '10px 12px 10px 34px', background: '#fff', border: '1px solid #e8e8ed', borderRadius: 10, color: '#1d1d1f', fontSize: 14, outline: 'none' }}
+                className="w-full py-2.5 pl-8 pr-3 bg-gray-50 border-none rounded-xl text-sm text-gray-900 outline-none placeholder:text-gray-300"
               />
             </div>
 
-            <div style={{ fontSize: 12, color: '#86868b', padding: '0 16px 8px', fontWeight: 500 }}>
+            <div className="text-xs text-gray-400 px-4 pb-2 font-medium">
               {loading ? 'Loading...' : `${filtered.length} notes`}
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px 16px' }}>
+            <div className="flex-1 overflow-y-auto">
               <AnimatePresence>
                 {paginated.map((conv, idx) => {
                   const s = safeStructured(conv);
@@ -122,44 +123,25 @@ export function Home() {
                   return (
                     <motion.div
                       key={conv.id}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.03 }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: idx * 0.02 }}
                       onClick={() => setSelectedId(conv.id)}
-                      style={{
-                        padding: '12px 14px', marginBottom: 2, borderRadius: 12, cursor: 'pointer',
-                        background: isActive ? '#e8f0fe' : 'transparent',
-                        transition: 'background 0.15s',
-                      }}
+                      className={`px-4 py-3 cursor-pointer transition-colors ${isActive ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                      style={{ borderLeft: isActive ? '3px solid #0071e3' : '3px solid transparent' }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                        <NoteIcon emoji={s.emoji} category={s.category} size={16} />
-                        <span style={{
-                          fontWeight: 600, fontSize: 14, color: '#1d1d1f',
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
-                          letterSpacing: -0.2,
-                        }}>
-                          {displayTitle(conv)}
-                        </span>
-                        {conv.starred && <span style={{ fontSize: 12 }}>{'\u2B50'}</span>}
+                      <div className="flex items-center gap-2 mb-1">
+                        <NoteIcon emoji={s.emoji} category={s.category} size={14} />
+                        <span className="font-semibold text-sm text-gray-900 truncate flex-1">{displayTitle(conv)}</span>
+                        {conv.starred && <span className="text-xs">⭐</span>}
                       </div>
-
                       {s.overview && (
-                        <div style={{
-                          fontSize: 13, color: '#86868b', lineHeight: 1.4, marginBottom: 4,
-                          overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
-                        }}>
-                          {s.overview}
-                        </div>
+                        <p className="text-xs text-gray-400 truncate mb-1">{s.overview}</p>
                       )}
-
-                      <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#aeaeb2' }}>
+                      <div className="flex gap-2 text-[10px] text-gray-300">
                         <span>{date}</span>
                         {dur && <span>{dur}</span>}
                         <span>{segs.length} seg</span>
-                        {s.actionItems.filter(a => !a.completed).length > 0 && (
-                          <span>{s.actionItems.filter(a => !a.completed).length} tasks</span>
-                        )}
                       </div>
                     </motion.div>
                   );
@@ -167,26 +149,30 @@ export function Home() {
               </AnimatePresence>
 
               {hasMore && (
-                <button onClick={() => setPage(p => p + 1)} style={{
-                  width: '100%', padding: 10, marginTop: 6, background: '#f0f0f2', border: 'none',
-                  borderRadius: 10, color: '#0071e3', fontSize: 13, fontWeight: 500, cursor: 'pointer',
-                }}>
+                <button onClick={() => setPage(p => p + 1)}
+                  className="w-[calc(100%-24px)] mx-3 my-2 py-2 bg-gray-50 border-none rounded-lg text-blue-600 text-xs font-medium cursor-pointer">
                   Load more ({filtered.length - paginated.length})
                 </button>
               )}
             </div>
           </div>
 
-          {/* RIGHT */}
-          <div style={{ flex: 1, overflowY: 'auto', background: '#fff' }}>
+          {/* RIGHT: Note detail - reference card style */}
+          <div className="flex-1 overflow-y-auto p-8 flex items-start justify-center">
             <AnimatePresence mode="wait">
               {selected ? (
-                <NoteDetail key={selected.id} conv={selected} uid={user?.uid}
-                  templates={templates} preferences={preferences}
-                  savedNotes={savedNotes} saveNote={saveNote} />
+                <NoteDetailCard
+                  key={selected.id}
+                  conv={selected}
+                  uid={user?.uid}
+                  templates={templates}
+                  preferences={preferences}
+                  savedNotes={savedNotes}
+                  saveNote={saveNote}
+                />
               ) : (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aeaeb2', fontSize: 15 }}>
+                  className="text-gray-300 text-sm mt-32">
                   Select a note to view
                 </motion.div>
               )}
