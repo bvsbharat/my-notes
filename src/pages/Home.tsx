@@ -91,14 +91,14 @@ export function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f0f1f3] flex items-center justify-center p-6 font-sans antialiased">
-      {/* The entire app is this card */}
-      <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_-12px_rgba(0,0,0,0.08)] w-full max-w-[1400px] min-h-[85vh] flex flex-col lg:flex-row overflow-hidden">
+    <div className="h-screen bg-[#f0f1f3] flex items-center justify-center p-6 font-sans antialiased overflow-hidden">
+      {/* The entire app is this card - fixed height, no body scroll */}
+      <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_-12px_rgba(0,0,0,0.08)] w-full max-w-[1400px] h-[90vh] flex flex-col lg:flex-row overflow-hidden">
 
         {/* LEFT PANEL: selected note detail (or empty state) */}
-        <div className="w-full lg:w-[45%] flex flex-col p-8 lg:p-10 border-r border-gray-100 overflow-y-auto">
-          {/* Logo + toggle + actions */}
-          <div className="flex items-center gap-3 mb-8">
+        <div className="w-full lg:w-[45%] flex flex-col border-r border-gray-100 overflow-hidden">
+          {/* Logo + toggle + actions (fixed, no scroll) */}
+          <div className="flex items-center gap-3 p-8 lg:p-10 pb-4 shrink-0">
             <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
               <path d="M24 4L41.3205 14V34L24 44L6.67949 34V14L24 4Z" fill="#111827"/>
               <path d="M18 24H30M30 24L25 19M30 24L25 29" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
@@ -121,7 +121,8 @@ export function Home() {
             <button onClick={() => logOut()} className="text-gray-300 hover:text-gray-500 bg-transparent border-none cursor-pointer transition-colors"><VscSignOut size={16} /></button>
           </div>
 
-          {/* Left content based on selection */}
+          {/* Scrollable content area */}
+          <div className="flex-1 overflow-y-auto px-8 lg:px-10 pb-8">
           <AnimatePresence mode="wait">
             {selected && mode === 'notes' ? (
               <motion.div key={selected.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1">
@@ -269,7 +270,7 @@ export function Home() {
 
           {/* Todo mode in left panel */}
           {mode === 'todo' && (
-            <div className="flex-1 overflow-y-auto">
+            <div>
               <h2 className="text-lg font-bold text-gray-900 mb-1">To-do</h2>
               <p className="text-xs text-gray-400 mb-4">{allTasks.filter(t => !t.completed).length} pending</p>
               <div className="space-y-2">
@@ -289,6 +290,7 @@ export function Home() {
               </div>
             </div>
           )}
+          </div>{/* end scrollable content */}
         </div>
 
         {/* RIGHT PANEL: all notes as card columns */}
