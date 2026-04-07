@@ -50,7 +50,7 @@ export function TodoView({ tasks, onSelectConversation, onToggleTask }: Props) {
           {(['pending', 'done', 'all'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
               className={`px-4 py-2 text-xs font-semibold border-none rounded-lg cursor-pointer transition-all ${
-                filter === f ? 'bg-gray-900 text-white' : 'bg-transparent text-gray-400 hover:text-gray-600'
+                filter === f ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-400 hover:text-gray-600'
               }`}>
               {f === 'pending' ? `Pending (${pending})` : f === 'done' ? `Done (${done})` : `All (${tasks.length})`}
             </button>

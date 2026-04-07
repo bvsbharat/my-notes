@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { VscSearch, VscSettingsGear, VscSignOut, VscChecklist, VscNote,
@@ -26,7 +26,7 @@ export function Home() {
   const { conversations, loading } = useConversations(user?.uid);
   const { templates } = useTemplates(user?.uid);
   const { preferences } = useSettings(user?.uid);
-  const { saveNote } = useNotes(user?.uid);
+  const { notes: smartNotes, saveNote } = useNotes(user?.uid);
 
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -72,6 +72,19 @@ export function Home() {
   if (!selectedId && paginated.length > 0 && !loading) {
     setTimeout(() => setSelectedId(paginated[0].id), 0);
   }
+
+  // Load saved smart notes when switching conversations
+  useEffect(() => {
+    if (!selectedId) { setUserNotes(''); setAiNotes(''); return; }
+    const saved = smartNotes.find(n => n.conversationId === selectedId);
+    if (saved) {
+      setUserNotes(saved.userNotes || '');
+      setAiNotes(saved.aiNotes || '');
+    } else {
+      setUserNotes('');
+      setAiNotes('');
+    }
+  }, [selectedId, smartNotes]);
 
   const handleReprocess = async () => {
     if (!selected) return;
@@ -376,7 +389,7 @@ function TodoSection({ allTasks, uid }: { allTasks: any[]; uid?: string }) {
         {(['all', 'pending', 'done'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className={`px-3 py-1.5 text-xs font-semibold border-none rounded-lg cursor-pointer transition-all ${
-              filter === f ? 'bg-gray-900 text-white' : 'bg-transparent text-gray-400 hover:text-gray-600'}`}>
+              filter === f ? 'bg-white text-gray-900 shadow-sm' : 'bg-transparent text-gray-400 hover:text-gray-600'}`}>
             {f === 'all' ? `All (${allTasks.length})` : f === 'pending' ? `Pending (${pending.length})` : `Done (${done.length})`}
           </button>
         ))}
