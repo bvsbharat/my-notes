@@ -202,12 +202,12 @@ export function Home() {
                                       return (
                                         <div key={item.id}
                                           onClick={() => user && toggleTaskCompleted(user.uid, selected.id, item.id, !item.completed)}
-                                          className="flex items-start gap-2.5 cursor-pointer py-0.5">
-                                          <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] shrink-0 mt-0.5 transition-colors ${
+                                          className="flex items-center gap-2.5 cursor-pointer py-0.5">
+                                          <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] shrink-0 transition-colors ${
                                             item.completed ? 'bg-gray-900 text-white' : 'border-2 border-gray-900 hover:bg-gray-100'}`}>
                                             {item.completed && '\u2713'}
                                           </span>
-                                          <span className={`text-[14px] leading-relaxed ${item.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                                          <span className={`text-[14px] leading-none truncate font-semibold ${item.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
                                             <span className={`${item.completed ? '' : HL[i % HL.length]} px-1 py-0.5 rounded`}>{item.description}</span>
                                           </span>
                                         </div>
@@ -410,8 +410,8 @@ function TodoSection({ allTasks, uid }: { allTasks: any[]; uid?: string }) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-x-6 content-start rounded-2xl px-4 pt-2 flex-1 min-h-0"
-        style={{ background: '#fffdf7', backgroundImage: 'repeating-linear-gradient(transparent, transparent 35px, #e8e4da 35px, #e8e4da 36px)', backgroundPositionY: '8px' }}>
+      <div className="grid grid-cols-1 content-start rounded-2xl px-4 pt-2 flex-1 min-h-0"
+        style={{ background: '#ffffff', backgroundImage: 'repeating-linear-gradient(transparent, transparent 35px, #e8e4da 35px, #e8e4da 36px)', backgroundPositionY: '8px' }}>
         <AnimatePresence>
           {shown.map((task: any, i: number) => {
             const date = task.convDate ? new Date(task.convDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
