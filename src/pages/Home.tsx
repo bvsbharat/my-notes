@@ -9,17 +9,12 @@ import { useConversations } from '../hooks/useConversations';
 import { useTemplates } from '../hooks/useTemplates';
 import { useSettings } from '../hooks/useSettings';
 import { useNotes } from '../hooks/useNotes';
-import { displayTitle, safeStructured, safeSegments, conversationDuration, formatTimestamp } from '../lib/types';
-import { toggleStar, softDelete, toggleTaskCompleted, exportAsText, downloadText, reprocessConversation } from '../lib/actions';
+import { displayTitle, safeStructured, safeSegments, formatTimestamp } from '../lib/types';
+import { toggleStar, softDelete, toggleTaskCompleted, deleteTask, exportAsText, downloadText, reprocessConversation } from '../lib/actions';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const PAGE_SIZE = 12;
-const CARD_COLORS = [
-  'bg-blue-100', 'bg-green-100', 'bg-yellow-100', 'bg-red-100',
-  'bg-purple-100', 'bg-green-100', 'bg-blue-100', 'bg-yellow-100',
-  'bg-red-100', 'bg-green-100', 'bg-purple-100', 'bg-blue-100',
-];
 
 export function Home() {
   const { user, logOut } = useAuth();
@@ -124,14 +119,7 @@ export function Home() {
 
         {/* ═══ LEFT PANEL ═══ */}
         <div className="flex flex-col overflow-hidden border-r border-gray-100 relative" style={{ width: `${leftWidth}%` }}>
-          {/* Header: logo only */}
-          <div className="flex items-center gap-3 px-8 pt-6 pb-3 shrink-0">
-            <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
-              <path d="M24 4L41.3205 14V34L24 44L6.67949 34V14L24 4Z" fill="#111827"/>
-              <path d="M18 24H30M30 24L25 19M30 24L25 29" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span className="text-sm font-bold text-gray-900 tracking-tight">SuperNotes</span>
-          </div>
+          <div className="shrink-0 h-4" />
 
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto px-8 pb-8">
@@ -160,7 +148,7 @@ export function Home() {
                         className={showTranscript ? '!text-gray-900' : ''} title="Transcript" />
                       <Ic icon={<VscCopy size={14} />} onClick={() => navigator.clipboard.writeText(selectedSegments.map(s => `${s.speaker}: ${s.text}`).join('\n'))} title="Copy" />
                       <Ic icon={<VscDesktopDownload size={14} />} onClick={() => downloadText(`${displayTitle(selected).replace(/[^a-zA-Z0-9]/g, '_')}.md`, exportAsText(selected))} title="Download" />
-                      <Ic icon={<VscTrash size={14} />} onClick={() => user && confirm('Delete?') && softDelete(user.uid, selected.id)} className="!text-red-400" title="Delete" />
+                      <Ic icon={<VscTrash size={14} />} onClick={() => user && confirm('Delete?') && softDelete(user.uid, selected.id)} title="Delete" />
                     </div>
 
                     {/* Tabs */}
@@ -310,40 +298,40 @@ export function Home() {
         <div onMouseDown={onMouseDown}
           className="w-1 cursor-col-resize hover:bg-blue-200 active:bg-blue-300 transition-colors shrink-0" />
 
-        {/* ═══ RIGHT PANEL: notes grid ═══ */}
-        <div className="flex-1 overflow-y-auto p-6 bg-[#ffffff]">
-          <div className="relative mb-5">
-            <VscSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
+        {/* ═══ RIGHT PANEL: notes list ═══ */}
+        <div className="flex-1 overflow-y-auto py-4 px-0 bg-[#ffffff]">
+          <div className="relative mb-4 px-3">
+            <VscSearch size={14} className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search notes..."
               className="w-full py-2.5 pl-9 pr-3 bg-white border border-gray-100 rounded-xl text-sm text-gray-900 outline-none placeholder:text-gray-300" />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-0">
             <AnimatePresence>
               {paginated.map((conv, i) => {
                 const s = safeStructured(conv);
-                const segs = safeSegments(conv);
-                const dur = conversationDuration(conv);
                 const isActive = conv.id === selectedId;
                 const date = new Date(conv.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                const color = CARD_COLORS[i % CARD_COLORS.length];
+                const pendingTasks = s.actionItems.filter(a => !a.completed).length;
+                const HL = ['bg-blue-100', 'bg-green-100', 'bg-yellow-100', 'bg-red-100', 'bg-purple-100', 'bg-pink-100'];
 
                 return (
-                  <motion.div key={conv.id} layout
-                    initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                  <motion.div key={conv.id}
+                    layout
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.02 }}
                     onClick={() => { setSelectedId(conv.id); setMode('notes'); setTab('overview'); setShowTranscript(false); }}
-                    className={`${color} p-4 rounded-2xl flex flex-col justify-between cursor-pointer transition-all min-h-[140px] ${isActive ? 'ring-2 ring-offset-2' : ''}`}
-                     style={isActive ? { '--tw-ring-color': '#6a7282' } as React.CSSProperties : {}}
-                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <div>
-                      <p className="text-[14px] font-semibold text-gray-900 leading-snug line-clamp-2 mb-1.5">{displayTitle(conv)}</p>
-                      {s.overview && <p className="text-[11px] text-gray-900/40 leading-relaxed line-clamp-3">{s.overview}</p>}
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-[10px] text-black/25">{date}{dur ? ` · ${dur}` : ''}</span>
-                      <span className="text-[10px] text-black/25">{segs.length} seg{s.actionItems.filter(a => !a.completed).length > 0 ? ` · ${s.actionItems.filter(a => !a.completed).length} tasks` : ''}</span>
+                    className={`px-4 py-2.5 cursor-pointer transition-all border-b border-gray-100/60 ${isActive ? 'bg-gray-100' : 'hover:bg-black/[0.02]'}`}
+                    whileTap={{ scale: 0.99 }}>
+                    <p className="text-[14px] font-semibold leading-snug line-clamp-2 text-gray-900">
+                      <span className={`${HL[i % HL.length]} px-1 py-0.5 rounded`}>{displayTitle(conv)}</span>
+                    </p>
+                    <div className="flex items-center gap-2 flex-wrap mt-1.5">
+                      <span className="text-[10px] text-gray-400">{date}</span>
+                      {pendingTasks > 0 && <span className="text-yellow-700 text-[10px] font-medium">{pendingTasks} tasks</span>}
+                      {s.category && s.category !== 'general' && <span className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[10px] uppercase font-semibold tracking-tighter">{s.category}</span>}
+                      {conv.starred && <VscStarFull size={12} className="text-yellow-400 ml-auto" />}
                     </div>
                   </motion.div>
                 );
@@ -353,17 +341,22 @@ export function Home() {
 
           {hasMore && (
             <button onClick={() => setPage(p => p + 1)}
-              className="w-full mt-4 py-3 bg-white border border-gray-100 rounded-xl text-blue-600 text-xs font-medium cursor-pointer">
+              className="w-full mt-4 py-3 bg-white/50 border-none rounded-xl text-gray-500 text-xs font-medium cursor-pointer hover:bg-white/80">
               Load more ({filtered.length - paginated.length})
             </button>
           )}
-          {!loading && filtered.length === 0 && <p className="text-center py-16 text-gray-300 text-sm">No notes yet</p>}
+          {!loading && filtered.length === 0 && <p className="text-center py-16 text-gray-400 text-sm">No notes yet</p>}
         </div>
       </div>
 
       {/* ═══ BOTTOM DOCK - centered to window ═══ */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
         <div className="flex items-center gap-1 bg-white/80 backdrop-blur-xl rounded-2xl px-2 py-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-gray-200/50">
+          <svg width="24" height="24" viewBox="0 0 48 48" fill="none" className="mx-1">
+            <path d="M24 4L41.3205 14V34L24 44L6.67949 34V14L24 4Z" fill="#111827"/>
+            <path d="M18 24H30M30 24L25 19M30 24L25 29" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <div className="w-px h-5 bg-gray-200 mx-1" />
           <button onClick={() => setMode('notes')}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all border-none cursor-pointer ${
               mode === 'notes' ? 'bg-gray-900 text-white shadow-sm' : 'bg-transparent text-gray-400 hover:text-gray-600'}`}>
@@ -388,13 +381,13 @@ function TodoSection({ allTasks, uid }: { allTasks: any[]; uid?: string }) {
   const pending = allTasks.filter(t => !t.completed);
   const done = allTasks.filter(t => t.completed);
   const shown = filter === 'pending' ? pending : filter === 'done' ? done : allTasks;
+  const HL = ['bg-blue-100', 'bg-green-100', 'bg-yellow-100', 'bg-red-100', 'bg-purple-100', 'bg-orange-100'];
 
   return (
-    <div>
-      <h2 className="text-lg font-bold text-gray-900 mb-1">To-do</h2>
-      <p className="text-xs text-gray-400 mb-4">{pending.length} pending &middot; {done.length} done</p>
+    <div className="flex flex-col h-full">
+      <h2 className="text-lg font-bold text-gray-900 mb-4">SuperTodo</h2>
 
-      <div className="flex gap-2 mb-5">
+      <div className="flex items-center gap-2 mb-5">
         {(['all', 'pending', 'done'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className={`px-3 py-1.5 text-xs font-semibold border-none rounded-lg cursor-pointer transition-all ${
@@ -402,35 +395,43 @@ function TodoSection({ allTasks, uid }: { allTasks: any[]; uid?: string }) {
             {f === 'all' ? `All (${allTasks.length})` : f === 'pending' ? `Pending (${pending.length})` : `Done (${done.length})`}
           </button>
         ))}
+        {done.length > 0 && (
+          <>
+            <span className="flex-1" />
+            <button onClick={() => {
+              if (!uid || !confirm(`Delete all ${done.length} completed tasks?`)) return;
+              done.forEach(t => deleteTask(uid, t.convId, t.id));
+            }}
+              title={`Delete all ${done.length} completed tasks`}
+              className="p-1.5 border-none rounded-md cursor-pointer transition-all text-gray-500 hover:text-gray-900 hover:bg-gray-100 bg-transparent flex items-center">
+              <VscTrash size={14} />
+            </button>
+          </>
+        )}
       </div>
 
-      {/* Same card grid style as notes on right panel */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-x-6 content-start rounded-2xl px-4 pt-2 flex-1 min-h-0"
+        style={{ background: '#fffdf7', backgroundImage: 'repeating-linear-gradient(transparent, transparent 35px, #e8e4da 35px, #e8e4da 36px)', backgroundPositionY: '8px' }}>
         <AnimatePresence>
           {shown.map((task: any, i: number) => {
-            const color = task.completed ? 'bg-gray-100' : CARD_COLORS[i % CARD_COLORS.length];
             const date = task.convDate ? new Date(task.convDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
             return (
               <motion.div key={task.id} layout
-                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 transition={{ delay: i * 0.02 }}
                 onClick={() => uid && toggleTaskCompleted(uid, task.convId, task.id, !task.completed)}
-                className={`${color} p-4 rounded-2xl flex flex-col justify-between cursor-pointer min-h-[120px]`}
-                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <div className="flex items-start gap-2.5">
-                  <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] shrink-0 mt-0.5 ${
-                    task.completed ? 'bg-gray-900 text-white' : 'border-2 border-gray-900'}`}>
-                    {task.completed && '\u2713'}
-                  </span>
-                  <p className={`text-[14px] font-semibold leading-snug line-clamp-3 ${task.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
-                    {task.description}
-                  </p>
-                </div>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-[10px] text-black/25">{date}</span>
-                  <span className="text-[10px] text-black/25">{task.completed ? 'click to undo' : task.convTitle}</span>
-                </div>
+                className="flex items-center gap-2.5 cursor-pointer"
+                style={{ height: 36 }}
+                whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+                <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] shrink-0 transition-colors ${
+                  task.completed ? 'bg-gray-900 text-white' : 'border-2 border-gray-900 hover:bg-gray-100'}`}>
+                  {task.completed && '\u2713'}
+                </span>
+                <span title={task.description} className={`text-[14px] leading-none truncate ${task.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                  <span className={`${task.completed ? '' : HL[i % HL.length]} px-1 py-0.5 rounded`}>{task.description}</span>
+                </span>
+                <span className="ml-auto text-[10px] text-gray-300 shrink-0">{date}</span>
               </motion.div>
             );
           })}
