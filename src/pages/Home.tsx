@@ -25,9 +25,9 @@ export function Home() {
 
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mode, setMode] = useState<'notes' | 'todo'>('notes');
-  const [tab, setTab] = useState<'overview' | 'smartnotes'>('overview');
+  const [selectedId, setSelectedId] = useState<string | null>(() => sessionStorage.getItem('sn:selectedId'));
+  const [mode, setMode] = useState<'notes' | 'todo'>(() => (sessionStorage.getItem('sn:mode') as 'notes' | 'todo') || 'notes');
+  const [tab, setTab] = useState<'overview' | 'smartnotes'>(() => (sessionStorage.getItem('sn:tab') as 'overview' | 'smartnotes') || 'overview');
   const [showTranscript, setShowTranscript] = useState(false);
   const [, setReprocessing] = useState(false);
   const [userNotes, setUserNotes] = useState('');
@@ -83,6 +83,11 @@ export function Home() {
       setAiNotes('');
     }
   }, [selectedId, smartNotes]);
+
+  // Persist active page state to sessionStorage
+  useEffect(() => { sessionStorage.setItem('sn:mode', mode); }, [mode]);
+  useEffect(() => { sessionStorage.setItem('sn:tab', tab); }, [tab]);
+  useEffect(() => { if (selectedId) sessionStorage.setItem('sn:selectedId', selectedId); }, [selectedId]);
 
   const handleReprocess = async () => {
     if (!selected) return;
