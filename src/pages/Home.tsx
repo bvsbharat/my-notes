@@ -34,6 +34,9 @@ export function Home() {
   const [aiNotes, setAiNotes] = useState('');
   const [transforming, setTransforming] = useState(false);
   const [leftWidth, setLeftWidth] = useState(70);
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploadText, setUploadText] = useState('');
+  const [uploading, setUploading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
 
@@ -110,6 +113,20 @@ export function Home() {
     setLeftWidth(Math.max(40, Math.min(85, pct)));
   }, []);
   const onMouseUp = useCallback(() => { dragging.current = false; }, []);
+
+  const handleUpload = async () => {
+    if (!user || !uploadText.trim()) return;
+    setUploading(true);
+    try {
+      const convId = await uploadTranscript(user.uid, uploadText.trim());
+      setUploadText('');
+      setShowUpload(false);
+      setSelectedId(convId);
+      setMode('notes');
+      setTab('overview');
+    } catch { alert('Upload failed'); }
+    finally { setUploading(false); }
+  };
 
   return (
     <div className="h-screen bg-[#f0f1f3] flex items-center justify-center p-6 font-sans antialiased overflow-hidden"
@@ -300,12 +317,37 @@ export function Home() {
 
         {/* ═══ RIGHT PANEL: notes list ═══ */}
         <div className="flex-1 overflow-y-auto py-4 px-0 bg-[#ffffff]">
-          <div className="relative mb-4 px-3">
-            <VscSearch size={14} className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300" />
-            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-              placeholder="Search notes..."
-              className="w-full py-2.5 pl-9 pr-3 bg-white border border-gray-100 rounded-xl text-sm text-gray-900 outline-none placeholder:text-gray-300" />
+          <div className="flex items-center gap-2 mb-4 px-3">
+            <div className="relative flex-1">
+              <VscSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
+              <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+                placeholder="Search notes..."
+                className="w-full py-2.5 pl-9 pr-3 bg-white border border-gray-100 rounded-xl text-sm text-gray-900 outline-none placeholder:text-gray-300" />
+            </div>
+            <button onClick={() => setShowUpload(!showUpload)} title="Upload transcript"
+              className={`p-2 border-none rounded-lg cursor-pointer transition-all flex items-center ${showUpload ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-400 hover:text-gray-900 hover:bg-gray-100'}`}>
+              <VscCloudUpload size={16} />
+            </button>
           </div>
+
+          {showUpload && (
+            <div className="mx-3 mb-4 p-3 bg-gray-50 rounded-xl">
+              <p className="text-xs font-semibold text-gray-500 mb-2">Paste or type transcript</p>
+              <textarea value={uploadText} onChange={e => setUploadText(e.target.value)}
+                placeholder="Paste transcript text here..."
+                className="w-full min-h-[120px] p-3 bg-white border border-gray-100 rounded-lg text-sm text-gray-900 outline-none resize-y placeholder:text-gray-300" />
+              <div className="flex gap-2 mt-2">
+                <button onClick={handleUpload} disabled={uploading || !uploadText.trim()}
+                  className="px-4 py-1.5 bg-gray-900 text-white border-none rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-30 flex items-center gap-1.5">
+                  <VscCloudUpload size={12} />{uploading ? 'Uploading...' : 'Upload'}
+                </button>
+                <button onClick={() => { setShowUpload(false); setUploadText(''); }}
+                  className="px-4 py-1.5 bg-transparent text-gray-400 border-none rounded-lg text-xs cursor-pointer hover:text-gray-600">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-0">
             <AnimatePresence>
@@ -379,9 +421,6 @@ export function Home() {
 function TodoSection({ allTasks, uid, onOpenNote }: { allTasks: any[]; uid?: string; onOpenNote: (convId: string) => void }) {
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all');
   const [newTask, setNewTask] = useState('');
-  const [showUpload, setShowUpload] = useState(false);
-  const [uploadText, setUploadText] = useState('');
-  const [uploading, setUploading] = useState(false);
   const pending = allTasks.filter(t => !t.completed);
   const done = allTasks.filter(t => t.completed);
   const shown = filter === 'pending' ? pending : filter === 'done' ? done : allTasks;
@@ -393,27 +432,9 @@ function TodoSection({ allTasks, uid, onOpenNote }: { allTasks: any[]; uid?: str
     setNewTask('');
   };
 
-  const handleUpload = async () => {
-    if (!uid || !uploadText.trim()) return;
-    setUploading(true);
-    try {
-      await uploadTranscript(uid, uploadText.trim());
-      setUploadText('');
-      setShowUpload(false);
-    } catch { alert('Upload failed'); }
-    finally { setUploading(false); }
-  };
-
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 mb-4">
-        <h2 className="text-lg font-bold text-gray-900">SuperTodo</h2>
-        <span className="flex-1" />
-        <button onClick={() => setShowUpload(!showUpload)} title="Upload transcript"
-          className="p-1.5 border-none rounded-md cursor-pointer transition-all text-gray-400 hover:text-gray-900 hover:bg-gray-100 bg-transparent flex items-center">
-          <VscCloudUpload size={16} />
-        </button>
-      </div>
+      <h2 className="text-lg font-bold text-gray-900 mb-4">SuperTodo</h2>
 
       {/* Add new task */}
       <div className="flex items-center gap-2 mb-3">
@@ -426,26 +447,6 @@ function TodoSection({ allTasks, uid, onOpenNote }: { allTasks: any[]; uid?: str
           <VscAdd size={14} />
         </button>
       </div>
-
-      {/* Upload transcript */}
-      {showUpload && (
-        <div className="mb-4 p-3 bg-gray-50 rounded-xl">
-          <p className="text-xs font-semibold text-gray-500 mb-2">Paste or type transcript</p>
-          <textarea value={uploadText} onChange={e => setUploadText(e.target.value)}
-            placeholder="Paste transcript text here..."
-            className="w-full min-h-[120px] p-3 bg-white border border-gray-100 rounded-lg text-sm text-gray-900 outline-none resize-y placeholder:text-gray-300" />
-          <div className="flex gap-2 mt-2">
-            <button onClick={handleUpload} disabled={uploading || !uploadText.trim()}
-              className="px-4 py-1.5 bg-gray-900 text-white border-none rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-30 flex items-center gap-1.5">
-              <VscCloudUpload size={12} />{uploading ? 'Uploading...' : 'Upload'}
-            </button>
-            <button onClick={() => { setShowUpload(false); setUploadText(''); }}
-              className="px-4 py-1.5 bg-transparent text-gray-400 border-none rounded-lg text-xs cursor-pointer hover:text-gray-600">
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
 
       <div className="flex items-center gap-2 mb-4">
         {(['all', 'pending', 'done'] as const).map(f => (

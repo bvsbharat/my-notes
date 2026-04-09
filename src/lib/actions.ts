@@ -108,11 +108,31 @@ export async function addTask(uid: string, description: string) {
   }
 }
 
-export async function uploadTranscript(_uid: string, text: string): Promise<string> {
-  const functions = getFunctions();
-  const upload = httpsCallable<{ text: string }, { conversationId: string }>(functions, 'uploadTranscript');
-  const result = await upload({ text });
-  return result.data.conversationId;
+export async function uploadTranscript(uid: string, text: string): Promise<string> {
+  const { setDoc } = await import('firebase/firestore');
+  const convId = `upload-${Date.now()}`;
+  const ref = doc(db, 'users', uid, 'conversations', convId);
+  const segments = text.split('\n').filter(l => l.trim()).map((line, i) => ({
+    id: `seg-${i}`,
+    text: line.trim(),
+    speaker: 'Speaker',
+    isUser: false,
+    start: i * 10,
+    end: (i + 1) * 10,
+  }));
+  await setDoc(ref, {
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    status: 'processing',
+    source: 'web-upload',
+    structured: { title: '', overview: '', emoji: '', category: 'general', actionItems: [], events: [] },
+    transcriptSegments: segments,
+    starred: false,
+    deleted: false,
+  });
+  // Trigger reprocessing to generate title, overview, action items
+  try { await reprocessConversation(convId); } catch {}
+  return convId;
 }
 
 export async function reprocessConversation(conversationId: string): Promise<{ success: boolean; title?: string }> {
