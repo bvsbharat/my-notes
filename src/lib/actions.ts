@@ -78,6 +78,43 @@ export async function deleteTask(uid: string, conversationId: string, taskId: st
   await updateDoc(ref, { 'structured.actionItems': updated });
 }
 
+export async function addTask(uid: string, description: string) {
+  // Add as a standalone task to a virtual "manual-tasks" conversation
+  const convId = 'manual-tasks';
+  const ref = doc(db, 'users', uid, 'conversations', convId);
+  const snap = await getDoc(ref);
+  const newItem: ActionItem = {
+    id: `task-${Date.now()}`,
+    description,
+    completed: false,
+    indentLevel: 0,
+    sortOrder: snap.exists() ? (snap.data().structured?.actionItems?.length || 0) : 0,
+  };
+  if (snap.exists()) {
+    const items: ActionItem[] = snap.data().structured?.actionItems || [];
+    await updateDoc(ref, { 'structured.actionItems': [...items, newItem] });
+  } else {
+    const { setDoc } = await import('firebase/firestore');
+    await setDoc(ref, {
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'completed',
+      source: 'manual',
+      structured: { title: 'Manual Tasks', overview: '', emoji: '', category: 'tasks', actionItems: [newItem], events: [] },
+      transcriptSegments: [],
+      starred: false,
+      deleted: false,
+    });
+  }
+}
+
+export async function uploadTranscript(_uid: string, text: string): Promise<string> {
+  const functions = getFunctions();
+  const upload = httpsCallable<{ text: string }, { conversationId: string }>(functions, 'uploadTranscript');
+  const result = await upload({ text });
+  return result.data.conversationId;
+}
+
 export async function reprocessConversation(conversationId: string): Promise<{ success: boolean; title?: string }> {
   const functions = getFunctions();
   const reprocess = httpsCallable<{ conversationId: string }, { success: boolean; title?: string }>(functions, 'reprocessConversation');

@@ -3,14 +3,14 @@ import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { VscSearch, VscSettingsGear, VscSignOut, VscChecklist, VscNote,
   VscStarFull, VscStarEmpty, VscTrash, VscCopy, VscRefresh, VscSparkle,
-  VscFileCode, VscDesktopDownload } from 'react-icons/vsc';
+  VscFileCode, VscDesktopDownload, VscAdd, VscCloudUpload, VscLinkExternal } from 'react-icons/vsc';
 import { useAuth } from '../hooks/useAuth';
 import { useConversations } from '../hooks/useConversations';
 import { useTemplates } from '../hooks/useTemplates';
 import { useSettings } from '../hooks/useSettings';
 import { useNotes } from '../hooks/useNotes';
 import { displayTitle, safeStructured, safeSegments, formatTimestamp } from '../lib/types';
-import { toggleStar, softDelete, toggleTaskCompleted, deleteTask, exportAsText, downloadText, reprocessConversation } from '../lib/actions';
+import { toggleStar, softDelete, toggleTaskCompleted, deleteTask, addTask, uploadTranscript, exportAsText, downloadText, reprocessConversation } from '../lib/actions';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
@@ -378,16 +378,76 @@ export function Home() {
 
 function TodoSection({ allTasks, uid, onOpenNote }: { allTasks: any[]; uid?: string; onOpenNote: (convId: string) => void }) {
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all');
+  const [newTask, setNewTask] = useState('');
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploadText, setUploadText] = useState('');
+  const [uploading, setUploading] = useState(false);
   const pending = allTasks.filter(t => !t.completed);
   const done = allTasks.filter(t => t.completed);
   const shown = filter === 'pending' ? pending : filter === 'done' ? done : allTasks;
   const HL = ['bg-blue-100', 'bg-green-100', 'bg-yellow-100', 'bg-red-100', 'bg-purple-100', 'bg-orange-100'];
 
+  const handleAddTask = async () => {
+    if (!uid || !newTask.trim()) return;
+    await addTask(uid, newTask.trim());
+    setNewTask('');
+  };
+
+  const handleUpload = async () => {
+    if (!uid || !uploadText.trim()) return;
+    setUploading(true);
+    try {
+      await uploadTranscript(uid, uploadText.trim());
+      setUploadText('');
+      setShowUpload(false);
+    } catch { alert('Upload failed'); }
+    finally { setUploading(false); }
+  };
+
   return (
     <div className="flex flex-col h-full">
-      <h2 className="text-lg font-bold text-gray-900 mb-4">SuperTodo</h2>
+      <div className="flex items-center gap-3 mb-4">
+        <h2 className="text-lg font-bold text-gray-900">SuperTodo</h2>
+        <span className="flex-1" />
+        <button onClick={() => setShowUpload(!showUpload)} title="Upload transcript"
+          className="p-1.5 border-none rounded-md cursor-pointer transition-all text-gray-400 hover:text-gray-900 hover:bg-gray-100 bg-transparent flex items-center">
+          <VscCloudUpload size={16} />
+        </button>
+      </div>
 
-      <div className="flex items-center gap-2 mb-5">
+      {/* Add new task */}
+      <div className="flex items-center gap-2 mb-3">
+        <input value={newTask} onChange={e => setNewTask(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleAddTask()}
+          placeholder="Add a new task..."
+          className="flex-1 py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-900 outline-none placeholder:text-gray-300" />
+        <button onClick={handleAddTask} disabled={!newTask.trim()}
+          className="p-2 bg-gray-900 text-white border-none rounded-lg cursor-pointer disabled:opacity-30 flex items-center">
+          <VscAdd size={14} />
+        </button>
+      </div>
+
+      {/* Upload transcript */}
+      {showUpload && (
+        <div className="mb-4 p-3 bg-gray-50 rounded-xl">
+          <p className="text-xs font-semibold text-gray-500 mb-2">Paste or type transcript</p>
+          <textarea value={uploadText} onChange={e => setUploadText(e.target.value)}
+            placeholder="Paste transcript text here..."
+            className="w-full min-h-[120px] p-3 bg-white border border-gray-100 rounded-lg text-sm text-gray-900 outline-none resize-y placeholder:text-gray-300" />
+          <div className="flex gap-2 mt-2">
+            <button onClick={handleUpload} disabled={uploading || !uploadText.trim()}
+              className="px-4 py-1.5 bg-gray-900 text-white border-none rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-30 flex items-center gap-1.5">
+              <VscCloudUpload size={12} />{uploading ? 'Uploading...' : 'Upload'}
+            </button>
+            <button onClick={() => { setShowUpload(false); setUploadText(''); }}
+              className="px-4 py-1.5 bg-transparent text-gray-400 border-none rounded-lg text-xs cursor-pointer hover:text-gray-600">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 mb-4">
         {(['all', 'pending', 'done'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className={`px-3 py-1.5 text-xs font-semibold border-none rounded-lg cursor-pointer transition-all ${
@@ -411,18 +471,18 @@ function TodoSection({ allTasks, uid, onOpenNote }: { allTasks: any[]; uid?: str
       </div>
 
       <div className="grid grid-cols-1 content-start rounded-2xl px-4 pt-2 flex-1 min-h-0"
-        style={{ background: '#ffffff', backgroundImage: 'repeating-linear-gradient(transparent, transparent 35px, #e8e4da 35px, #e8e4da 36px)', backgroundPositionY: '8px' }}>
+        style={{ background: '#ffffff', backgroundImage: 'repeating-linear-gradient(transparent, transparent 47px, #e8e4da 47px, #e8e4da 48px)', backgroundPositionY: '8px' }}>
         <AnimatePresence>
           {shown.map((task: any, i: number) => {
-            const date = task.convDate ? new Date(task.convDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+            const dateTime = task.convDate ? new Date(task.convDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
             return (
               <motion.div key={task.id} layout
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ delay: i * 0.02 }}
-                className="py-2 cursor-pointer"
-                whileTap={{ scale: 0.99 }}>
-                <div className="flex items-center gap-2.5"
+                style={{ height: 48 }}
+                className="flex flex-col justify-center">
+                <div className="flex items-center gap-2.5 cursor-pointer"
                   onClick={() => uid && toggleTaskCompleted(uid, task.convId, task.id, !task.completed)}>
                   <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] shrink-0 transition-colors ${
                     task.completed ? 'bg-gray-900 text-white' : 'border-2 border-gray-900 hover:bg-gray-100'}`}>
@@ -432,13 +492,17 @@ function TodoSection({ allTasks, uid, onOpenNote }: { allTasks: any[]; uid?: str
                     <span className={`${task.completed ? '' : HL[i % HL.length]} px-1 py-0.5 rounded`}>{task.description}</span>
                   </span>
                 </div>
-                <div className="flex items-center gap-2 ml-[26px] mt-1">
-                  <span className="text-[10px] text-gray-300">{date}</span>
-                  <span className="text-[10px] text-gray-300">&middot;</span>
-                  <span className="text-[10px] text-gray-400 hover:text-gray-600 underline underline-offset-2 cursor-pointer truncate"
-                    onClick={(e) => { e.stopPropagation(); onOpenNote(task.convId); }}>
-                    {task.convTitle}
-                  </span>
+                <div className="flex items-center gap-1.5 ml-[26px] mt-0.5">
+                  <span className="text-[10px] text-gray-300">{dateTime}</span>
+                  {task.convId !== 'manual-tasks' && (
+                    <>
+                      <span className="text-[10px] text-gray-300">&middot;</span>
+                      <span className="text-[10px] text-gray-400 hover:text-gray-600 cursor-pointer flex items-center gap-0.5"
+                        onClick={(e) => { e.stopPropagation(); onOpenNote(task.convId); }}>
+                        <VscLinkExternal size={9} /> <span className="underline underline-offset-2">link</span>
+                      </span>
+                    </>
+                  )}
                 </div>
               </motion.div>
             );
