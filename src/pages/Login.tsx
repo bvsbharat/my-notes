@@ -135,7 +135,7 @@ export function Login() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6 }}
           className="absolute inset-0 z-40"
-          style={{ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', background: 'rgba(255,255,255,0.4)' }}
+          style={{ backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)', background: 'rgba(0,0,0,0.3)' }}
         />
 
         {/* Login modal */}

@@ -12,6 +12,8 @@ import { useNotes } from '../hooks/useNotes';
 import { displayTitle, safeStructured, safeSegments, formatTimestamp } from '../lib/types';
 import { toggleStar, softDelete, toggleTaskCompleted, deleteTask, addTask, uploadTranscript, exportAsText, downloadText, reprocessConversation } from '../lib/actions';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
+import { useConfirm } from '../components/ConfirmModal';
+import { toast } from 'sonner';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const PAGE_SIZE = 12;
@@ -22,6 +24,7 @@ export function Home() {
   const { templates } = useTemplates(user?.uid);
   const { preferences } = useSettings(user?.uid);
   const { notes: smartNotes, saveNote } = useNotes(user?.uid);
+  const { confirm, modal: confirmModal } = useConfirm();
 
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -105,7 +108,7 @@ export function Home() {
       const result = await transform({ conversationId: selected.id, userNotes, preferences });
       setAiNotes(result.data.enhancedNotes);
       await saveNote({ conversationId: selected.id, userNotes, aiNotes: result.data.enhancedNotes });
-    } catch { alert('Transform failed'); }
+    } catch { toast.error('Transform failed'); }
     finally { setTransforming(false); }
   };
 
@@ -129,7 +132,7 @@ export function Home() {
       setSelectedId(convId);
       setMode('notes');
       setTab('overview');
-    } catch { alert('Upload failed'); }
+    } catch { toast.error('Upload failed'); }
     finally { setUploading(false); }
   };
 
@@ -170,7 +173,11 @@ export function Home() {
                         className={showTranscript ? '!text-gray-900' : ''} title="Transcript" />
                       <Ic icon={<VscCopy size={14} />} onClick={() => navigator.clipboard.writeText(selectedSegments.map(s => `${s.speaker}: ${s.text}`).join('\n'))} title="Copy" />
                       <Ic icon={<VscDesktopDownload size={14} />} onClick={() => downloadText(`${displayTitle(selected).replace(/[^a-zA-Z0-9]/g, '_')}.md`, exportAsText(selected))} title="Download" />
-                      <Ic icon={<VscTrash size={14} />} onClick={() => user && confirm('Delete?') && softDelete(user.uid, selected.id)} title="Delete" />
+                      <Ic icon={<VscTrash size={14} />} onClick={async () => {
+                        if (!user) return;
+                        const ok = await confirm({ title: 'Delete note', message: 'Are you sure you want to delete this note?', confirmText: 'Delete', variant: 'danger' });
+                        if (ok) { await softDelete(user.uid, selected.id); toast.success('Note deleted'); }
+                      }} title="Delete" />
                     </div>
 
                     {/* Tabs */}
@@ -310,7 +317,7 @@ export function Home() {
 
             {/* ── Todo mode ── */}
             {mode === 'todo' && (
-              <TodoSection allTasks={allTasks} uid={user?.uid} onOpenNote={(convId) => { setSelectedId(convId); setMode('notes'); setTab('overview'); setShowTranscript(false); }} />
+              <TodoSection allTasks={allTasks} uid={user?.uid} confirm={confirm} onOpenNote={(convId) => { setSelectedId(convId); setMode('notes'); setTab('overview'); setShowTranscript(false); }} />
             )}
           </div>
 
@@ -419,11 +426,12 @@ export function Home() {
           <button onClick={() => logOut()} className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-2 flex transition-colors"><VscSignOut size={14} /></button>
         </div>
       </div>
+      {confirmModal}
     </div>
   );
 }
 
-function TodoSection({ allTasks, uid, onOpenNote }: { allTasks: any[]; uid?: string; onOpenNote: (convId: string) => void }) {
+function TodoSection({ allTasks, uid, confirm, onOpenNote }: { allTasks: any[]; uid?: string; confirm: (opts: { title: string; message: string; confirmText?: string; variant?: 'danger' | 'default' }) => Promise<boolean>; onOpenNote: (convId: string) => void }) {
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all');
   const [newTask, setNewTask] = useState('');
   const [showAddInput, setShowAddInput] = useState(false);
@@ -459,9 +467,10 @@ function TodoSection({ allTasks, uid, onOpenNote }: { allTasks: any[]; uid?: str
           <VscNote size={14} />
         </button>
         {done.length > 0 && (
-          <button onClick={() => {
-            if (!uid || !confirm(`Delete all ${done.length} completed tasks?`)) return;
-            done.forEach(t => deleteTask(uid, t.convId, t.id));
+          <button onClick={async () => {
+            if (!uid) return;
+            const ok = await confirm({ title: 'Clear completed tasks', message: `Delete all ${done.length} completed tasks? This cannot be undone.`, confirmText: 'Delete all', variant: 'danger' });
+            if (ok) { done.forEach(t => deleteTask(uid, t.convId, t.id)); toast.success('Completed tasks cleared'); }
           }}
             title={`Delete all ${done.length} completed tasks`}
             className="p-1.5 border-none rounded-md cursor-pointer transition-all text-gray-500 hover:text-gray-900 hover:bg-gray-100 bg-transparent flex items-center">
