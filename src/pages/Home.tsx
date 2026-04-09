@@ -132,7 +132,7 @@ export function Home() {
     <div className="h-screen bg-[#f0f1f3] flex items-center justify-center p-6 font-sans antialiased overflow-hidden"
       onMouseMove={onMouseMove} onMouseUp={onMouseUp}>
       <div ref={containerRef}
-        className="bg-white rounded-[2rem] shadow-[0_20px_60px_-12px_rgba(0,0,0,0.08)] w-full max-w-[1500px] h-[92vh] flex overflow-hidden select-none">
+        className="bg-white rounded-[2rem] shadow-[0_20px_60px_-12px_rgba(0,0,0,0.08)] w-full max-w-[1500px] h-[92vh] flex overflow-hidden">
 
         {/* ═══ LEFT PANEL ═══ */}
         <div className="flex flex-col overflow-hidden border-r border-gray-100 relative" style={{ width: `${leftWidth}%` }}>
@@ -421,6 +421,8 @@ export function Home() {
 function TodoSection({ allTasks, uid, onOpenNote }: { allTasks: any[]; uid?: string; onOpenNote: (convId: string) => void }) {
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all');
   const [newTask, setNewTask] = useState('');
+  const [showAddInput, setShowAddInput] = useState(false);
+  const addInputRef = useRef<HTMLInputElement>(null);
   const pending = allTasks.filter(t => !t.completed);
   const done = allTasks.filter(t => t.completed);
   const shown = filter === 'pending' ? pending : filter === 'done' ? done : allTasks;
@@ -430,23 +432,12 @@ function TodoSection({ allTasks, uid, onOpenNote }: { allTasks: any[]; uid?: str
     if (!uid || !newTask.trim()) return;
     await addTask(uid, newTask.trim());
     setNewTask('');
+    setShowAddInput(false);
   };
 
   return (
     <div className="flex flex-col h-full">
       <h2 className="text-lg font-bold text-gray-900 mb-4">SuperTodo</h2>
-
-      {/* Add new task */}
-      <div className="flex items-center gap-2 mb-3">
-        <input value={newTask} onChange={e => setNewTask(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleAddTask()}
-          placeholder="Add a new task..."
-          className="flex-1 py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-900 outline-none placeholder:text-gray-300" />
-        <button onClick={handleAddTask} disabled={!newTask.trim()}
-          className="p-2 bg-gray-900 text-white border-none rounded-lg cursor-pointer disabled:opacity-30 flex items-center">
-          <VscAdd size={14} />
-        </button>
-      </div>
 
       <div className="flex items-center gap-2 mb-4">
         {(['all', 'pending', 'done'] as const).map(f => (
@@ -456,20 +447,37 @@ function TodoSection({ allTasks, uid, onOpenNote }: { allTasks: any[]; uid?: str
             {f === 'all' ? `All (${allTasks.length})` : f === 'pending' ? `Pending (${pending.length})` : `Done (${done.length})`}
           </button>
         ))}
+        <span className="flex-1" />
+        <button onClick={() => { setShowAddInput(!showAddInput); setTimeout(() => addInputRef.current?.focus(), 50); }}
+          title="Add new task"
+          className={`p-1.5 border-none rounded-md cursor-pointer transition-all flex items-center ${showAddInput ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100 bg-transparent'}`}>
+          <VscNote size={14} />
+        </button>
         {done.length > 0 && (
-          <>
-            <span className="flex-1" />
-            <button onClick={() => {
-              if (!uid || !confirm(`Delete all ${done.length} completed tasks?`)) return;
-              done.forEach(t => deleteTask(uid, t.convId, t.id));
-            }}
-              title={`Delete all ${done.length} completed tasks`}
-              className="p-1.5 border-none rounded-md cursor-pointer transition-all text-gray-500 hover:text-gray-900 hover:bg-gray-100 bg-transparent flex items-center">
-              <VscTrash size={14} />
-            </button>
-          </>
+          <button onClick={() => {
+            if (!uid || !confirm(`Delete all ${done.length} completed tasks?`)) return;
+            done.forEach(t => deleteTask(uid, t.convId, t.id));
+          }}
+            title={`Delete all ${done.length} completed tasks`}
+            className="p-1.5 border-none rounded-md cursor-pointer transition-all text-gray-500 hover:text-gray-900 hover:bg-gray-100 bg-transparent flex items-center">
+            <VscTrash size={14} />
+          </button>
         )}
       </div>
+
+      {/* Add new task input */}
+      {showAddInput && (
+        <div className="flex items-center gap-2 mb-3">
+          <input ref={addInputRef} value={newTask} onChange={e => setNewTask(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleAddTask(); if (e.key === 'Escape') { setShowAddInput(false); setNewTask(''); } }}
+            placeholder="Add a new task..."
+            className="flex-1 py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-900 outline-none placeholder:text-gray-300" />
+          <button onClick={handleAddTask} disabled={!newTask.trim()}
+            className="p-2 bg-gray-900 text-white border-none rounded-lg cursor-pointer disabled:opacity-30 flex items-center">
+            <VscAdd size={14} />
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 content-start rounded-2xl px-4 pt-2 flex-1 min-h-0"
         style={{ background: '#ffffff', backgroundImage: 'repeating-linear-gradient(transparent, transparent 47px, #e8e4da 47px, #e8e4da 48px)', backgroundPositionY: '8px' }}>
