@@ -84,8 +84,11 @@ export default function App() {
 
   return (
     <>
-      <Toaster position="top-center" richColors closeButton
-        toastOptions={{ style: { borderRadius: '14px', fontSize: '13px', fontWeight: 500 } }} />
+      <Toaster position="bottom-center" theme="dark"
+        toastOptions={{
+          style: { borderRadius: '16px', fontSize: '13px', fontWeight: 600, background: '#1a1a2e', color: '#fff', border: 'none', boxShadow: '0 8px 30px -8px rgba(0,0,0,0.3)', padding: '12px 20px' },
+          classNames: { success: '', error: '', info: '' },
+        }} />
       <AnimatePresence>
         {showPreloader && <Preloader onDone={() => setShowPreloader(false)} />}
       </AnimatePresence>

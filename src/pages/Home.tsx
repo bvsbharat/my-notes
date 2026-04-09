@@ -108,7 +108,7 @@ export function Home() {
       const result = await transform({ conversationId: selected.id, userNotes, preferences });
       setAiNotes(result.data.enhancedNotes);
       await saveNote({ conversationId: selected.id, userNotes, aiNotes: result.data.enhancedNotes });
-    } catch { toast.error('Transform failed'); }
+    } catch { toast('Transform failed', { style: { background: '#fecaca', color: '#991b1b' } }); }
     finally { setTransforming(false); }
   };
 
@@ -132,7 +132,7 @@ export function Home() {
       setSelectedId(convId);
       setMode('notes');
       setTab('overview');
-    } catch { toast.error('Upload failed'); }
+    } catch { toast('Upload failed', { style: { background: '#fecaca', color: '#991b1b' } }); }
     finally { setUploading(false); }
   };
 
@@ -176,7 +176,7 @@ export function Home() {
                       <Ic icon={<VscTrash size={14} />} onClick={async () => {
                         if (!user) return;
                         const ok = await confirm({ title: 'Delete note', message: 'Are you sure you want to delete this note?', confirmText: 'Delete', variant: 'danger' });
-                        if (ok) { await softDelete(user.uid, selected.id); toast.success('Note deleted'); }
+                        if (ok) { await softDelete(user.uid, selected.id); toast('Note deleted', { style: { background: '#dbeafe', color: '#1e3a5f' } }); }
                       }} title="Delete" />
                     </div>
 
@@ -470,7 +470,7 @@ function TodoSection({ allTasks, uid, confirm, onOpenNote }: { allTasks: any[]; 
           <button onClick={async () => {
             if (!uid) return;
             const ok = await confirm({ title: 'Clear completed tasks', message: `Delete all ${done.length} completed tasks? This cannot be undone.`, confirmText: 'Delete all', variant: 'danger' });
-            if (ok) { done.forEach(t => deleteTask(uid, t.convId, t.id)); toast.success('Completed tasks cleared'); }
+            if (ok) { done.forEach(t => deleteTask(uid, t.convId, t.id)); toast('Completed tasks cleared', { style: { background: '#d1fae5', color: '#065f46' } }); }
           }}
             title={`Delete all ${done.length} completed tasks`}
             className="p-1.5 border-none rounded-md cursor-pointer transition-all text-gray-500 hover:text-gray-900 hover:bg-gray-100 bg-transparent flex items-center">

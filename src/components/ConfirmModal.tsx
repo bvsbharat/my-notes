@@ -35,15 +35,15 @@ export function ConfirmModal({ open, title, message, confirmText = 'Confirm', ca
             transition={{ duration: 0.25, type: 'spring', damping: 25, stiffness: 350 }}
             className="fixed inset-0 z-[201] flex items-center justify-center pointer-events-none"
           >
-            <div className="bg-white/90 backdrop-blur-2xl rounded-2xl p-6 shadow-[0_25px_60px_-12px_rgba(0,0,0,0.15)] border border-gray-200/50 max-w-sm w-full mx-4 pointer-events-auto">
-              <h3 className="text-base font-bold text-gray-900 mb-1.5">{title}</h3>
-              <p className="text-sm text-gray-500 mb-6 leading-relaxed">{message}</p>
+            <div className="bg-[#1a1a2e] rounded-2xl p-6 shadow-[0_25px_60px_-12px_rgba(0,0,0,0.4)] max-w-sm w-full mx-4 pointer-events-auto">
+              <h3 className="text-base font-bold text-white mb-1.5">{title}</h3>
+              <p className="text-sm text-white/50 mb-6 leading-relaxed">{message}</p>
               <div className="flex gap-2.5 justify-end">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={onCancel}
-                  className="px-4 py-2 bg-gray-100 text-gray-600 border-none rounded-xl text-sm font-semibold cursor-pointer hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 bg-white/10 text-white/70 border-none rounded-xl text-sm font-semibold cursor-pointer hover:bg-white/15 transition-colors"
                 >
                   {cancelText}
                 </motion.button>
@@ -53,8 +53,8 @@ export function ConfirmModal({ open, title, message, confirmText = 'Confirm', ca
                   onClick={onConfirm}
                   className={`px-4 py-2 border-none rounded-xl text-sm font-semibold cursor-pointer transition-colors ${
                     variant === 'danger'
-                      ? 'bg-red-500 text-white hover:bg-red-600'
-                      : 'bg-gray-900 text-white hover:bg-gray-800'
+                      ? 'bg-white text-[#1a1a2e] hover:bg-white/90'
+                      : 'bg-white text-[#1a1a2e] hover:bg-white/90'
                   }`}
                 >
                   {confirmText}
