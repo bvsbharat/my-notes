@@ -288,7 +288,7 @@ export function Home() {
 
             {/* ── Todo mode ── */}
             {mode === 'todo' && (
-              <TodoSection allTasks={allTasks} uid={user?.uid} />
+              <TodoSection allTasks={allTasks} uid={user?.uid} onOpenNote={(convId) => { setSelectedId(convId); setMode('notes'); setTab('overview'); setShowTranscript(false); }} />
             )}
           </div>
 
@@ -376,7 +376,7 @@ export function Home() {
   );
 }
 
-function TodoSection({ allTasks, uid }: { allTasks: any[]; uid?: string }) {
+function TodoSection({ allTasks, uid, onOpenNote }: { allTasks: any[]; uid?: string; onOpenNote: (convId: string) => void }) {
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all');
   const pending = allTasks.filter(t => !t.completed);
   const done = allTasks.filter(t => t.completed);
@@ -420,18 +420,26 @@ function TodoSection({ allTasks, uid }: { allTasks: any[]; uid?: string }) {
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ delay: i * 0.02 }}
-                onClick={() => uid && toggleTaskCompleted(uid, task.convId, task.id, !task.completed)}
-                className="flex items-center gap-2.5 cursor-pointer"
-                style={{ height: 36 }}
-                whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-                <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] shrink-0 transition-colors ${
-                  task.completed ? 'bg-gray-900 text-white' : 'border-2 border-gray-900 hover:bg-gray-100'}`}>
-                  {task.completed && '\u2713'}
-                </span>
-                <span title={task.description} className={`text-[14px] leading-none truncate ${task.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
-                  <span className={`${task.completed ? '' : HL[i % HL.length]} px-1 py-0.5 rounded`}>{task.description}</span>
-                </span>
-                <span className="ml-auto text-[10px] text-gray-300 shrink-0">{date}</span>
+                className="py-2 cursor-pointer"
+                whileTap={{ scale: 0.99 }}>
+                <div className="flex items-center gap-2.5"
+                  onClick={() => uid && toggleTaskCompleted(uid, task.convId, task.id, !task.completed)}>
+                  <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] shrink-0 transition-colors ${
+                    task.completed ? 'bg-gray-900 text-white' : 'border-2 border-gray-900 hover:bg-gray-100'}`}>
+                    {task.completed && '\u2713'}
+                  </span>
+                  <span title={task.description} className={`text-[14px] leading-none truncate font-semibold ${task.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                    <span className={`${task.completed ? '' : HL[i % HL.length]} px-1 py-0.5 rounded`}>{task.description}</span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 ml-[26px] mt-1">
+                  <span className="text-[10px] text-gray-300">{date}</span>
+                  <span className="text-[10px] text-gray-300">&middot;</span>
+                  <span className="text-[10px] text-gray-400 hover:text-gray-600 underline underline-offset-2 cursor-pointer truncate"
+                    onClick={(e) => { e.stopPropagation(); onOpenNote(task.convId); }}>
+                    {task.convTitle}
+                  </span>
+                </div>
               </motion.div>
             );
           })}
